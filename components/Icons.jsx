@@ -1,9 +1,9 @@
-import Icons from 'react-native-vector-icons/FontAwesome';
+import { FontAwesome } from '@expo/vector-icons'
 
 export const MapsIcon = (props) => (
-  <Icons name="map" size={32} color="white" {...props}/>
+  <FontAwesome name="map-o" size={24} color="white" {...props}/>
 );
 
-export const InfoIcon = (props) => (
-  <Icons name="info" size={32} color="white" {...props} />
+export const CalendarIcon = (props) => (
+  <FontAwesome name="calendar" size={24} color="white" {...props} />
 );
