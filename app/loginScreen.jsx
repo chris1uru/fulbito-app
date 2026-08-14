@@ -1,69 +1,73 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
-// 1. Importas el hook router de expo-router
-import { useRouter } from 'expo-router';
+import { Link } from "expo-router";
+import { useState } from "react";
+import { Alert, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useAuth } from "../context/AuthContext";
 
 export default function LoginScreen() {
-  const router = useRouter(); // 2. Inicializas el router
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { signIn } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+  async function handleLogin() {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Por favor ingresa un correo y contraseña.');
+      Alert.alert("Faltan datos", "Ingresa tu correo y contraseña.");
       return;
     }
 
-    router.replace('/maps');
-          
-
-  };
+    try {
+      setLoading(true);
+      await signIn({ email: email.trim().toLowerCase(), password });
+    } catch (error) {
+      Alert.alert("No se pudo iniciar sesión", error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-    <View className="flex-1 justify-center px-6 bg-slate-900">
-      <View className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
-        <Text className="text-3xl font-bold text-white text-center mb-2">
-          ¡Hola de nuevo!
-        </Text>
-        <Text className="text-slate-400 text-center mb-8">
-          Ingresa a tu cuenta de Fulbito
-        </Text>
+    <View className="flex-1 justify-center bg-slate-900 px-6">
+      <View className="rounded-2xl border border-slate-700 bg-slate-800 p-6 shadow-lg">
+        <Text className="mb-2 text-center text-3xl font-bold text-white">¡Hola de nuevo!</Text>
+        <Text className="mb-8 text-center text-slate-400">Ingresa a tu cuenta de Fulbito</Text>
 
-        <View className="mb-4">
-          <Text className="text-slate-300 font-medium mb-2">Correo electrónico</Text>
-          <TextInput
-            className="w-full bg-slate-900 text-white px-4 py-3 rounded-xl border border-slate-700 focus:border-green-500"
-            placeholder="ejemplo@correo.com"
-            placeholderTextColor="#64748b"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            value={email}
-            onChangeText={setEmail}
-          />
-        </View>
+        <Text className="mb-2 font-medium text-slate-300">Correo electrónico</Text>
+        <TextInput
+          className="mb-4 rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white"
+          placeholder="ejemplo@correo.com"
+          placeholderTextColor="#64748b"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          value={email}
+          onChangeText={setEmail}
+        />
 
-        <View className="mb-6">
-          <Text className="text-slate-300 font-medium mb-2">Contraseña</Text>
-          <TextInput
-            className="w-full bg-slate-900 text-white px-4 py-3 rounded-xl border border-slate-700 focus:border-green-500"
-            placeholder="••••••••"
-            placeholderTextColor="#64748b"
-            secureTextEntry={true}
-            value={password}
-            onChangeText={setPassword}
-          />
-        </View>
+        <Text className="mb-2 font-medium text-slate-300">Contraseña</Text>
+        <TextInput
+          className="mb-6 rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white"
+          placeholder="••••••••"
+          placeholderTextColor="#64748b"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
 
         <TouchableOpacity
-          activeOpacity={0.8}
-          className="w-full bg-green-500 py-4 rounded-xl items-center shadow-md active:bg-green-600"
+          className={`items-center rounded-xl bg-green-500 py-4 ${loading ? "opacity-60" : ""}`}
+          disabled={loading}
           onPress={handleLogin}
         >
-          <Text className="text-slate-950 font-bold text-base">
-            Iniciar Sesión
-          </Text>
+          <Text className="font-bold text-slate-950">{loading ? "Ingresando..." : "Iniciar sesión"}</Text>
         </TouchableOpacity>
+
+        <Link href="/register" asChild>
+          <TouchableOpacity className="mt-5 items-center">
+            <Text className="text-slate-300">
+              ¿No tenés cuenta? <Text className="font-bold text-green-400">Registrate</Text>
+            </Text>
+          </TouchableOpacity>
+        </Link>
       </View>
     </View>
   );
