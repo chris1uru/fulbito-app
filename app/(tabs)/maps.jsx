@@ -1,15 +1,25 @@
-import MapView from "react-native-maps";
+import { useState } from "react";
+import MapView, { Marker } from "react-native-maps";
+import MapsHeader from "../../components/MapsHeader";
+
 
 export default function Maps() {
-    return (
-        <MapView
-            style={{ flex: 1 }}
-            initialRegion={{
-                latitude: -34.9,
-                longitude: -54.95,
-                latitudeDelta: 0.09,
-                longitudeDelta: 0.04,
-            }}
-        />
-    );
+  return (
+    <>
+      <MapView
+        style={{ flex: 1 }}
+        initialRegion={{
+          latitude: -34.9,
+          longitude: -56.16,
+          latitudeDelta: 0.11,
+          longitudeDelta: 0.11,
+        }}
+      >
+       
+      </MapView>
+
+      <MapsHeader/>
+ 
+    </>
+  );
 }

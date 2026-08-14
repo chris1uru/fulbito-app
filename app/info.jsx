@@ -5,12 +5,11 @@ export default function Info() {
     return (
         <><Stack.Screen
             options={{
-                headerStyle: { opacity: 0.9, backgroundColor: "#1E1E1E" },
+                headerShown:true,
                 headerTitle: "Información",
-                headerTitleStyle: { color: "#80D160" },
+                headerBackTitle: "",
             }} 
         />
-            
             <View className="flex-1 items-center justify-center bg-black">
                 <Text className="text-white">Información</Text>
             </View></>
