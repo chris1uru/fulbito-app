@@ -1,20 +1,78 @@
-import { Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
 
 export default function Perfil() {
   const { user, signOut } = useAuth();
 
   return (
-    <View className="flex-1 justify-center bg-slate-900 px-6">
-      <View className="rounded-2xl border border-slate-700 bg-slate-800 p-6">
-        <Text className="text-2xl font-bold text-white">{user.firstName} {user.lastName}</Text>
-        <Text className="mt-2 text-slate-300">{user.email}</Text>
-        <Text className="mt-1 text-green-400">{user.role}</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#17191C" }} edges={["top"]}>
+      <ScrollView contentContainerClassName="px-4 pb-8 pt-5">
+        <View className="mb-6 flex-row items-center justify-between">
+          <View>
+            <Text className="text-3xl font-semibold text-white">Mi perfil</Text>
+            <Text className="mt-1 text-sm text-[#A9B1B8]">Tu cuenta de Fulbito</Text>
+          </View>
+          <View className="h-11 w-11 items-center justify-center rounded-xl bg-[#2C4930]">
+            <Ionicons name="football-outline" size={22} color="#80D160" />
+          </View>
+        </View>
 
-        <TouchableOpacity className="mt-8 items-center rounded-xl border border-red-400 py-3" onPress={signOut}>
-          <Text className="font-semibold text-red-400">Cerrar sesión</Text>
+        <View className="mb-4 overflow-hidden rounded-3xl border border-[#30363D] bg-[#202428]">
+          <View className="h-20 bg-[#2C4930]" />
+          <View className="px-5 pb-5">
+            <View className="-mt-10 h-20 w-20 items-center justify-center rounded-3xl border-4 border-[#202428] bg-[#35583A]">
+              <Text className="text-3xl font-semibold text-[#80D160]">
+                {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+              </Text>
+            </View>
+
+            <View className="mt-3 flex-row items-start justify-between">
+              <View className="flex-1 pr-3">
+                <Text className="text-2xl font-semibold text-white">{user.firstName} {user.lastName}</Text>
+                <Text className="mt-1 text-sm text-[#A9B1B8]">{user.email}</Text>
+              </View>
+              <View className="rounded-lg bg-[#2C4930] px-3 py-1.5">
+                <Text className="text-xs font-semibold text-[#80D160]">{user.role}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <Text className="mb-3 mt-2 text-xs font-semibold uppercase tracking-widest text-[#8B949E]">Información personal</Text>
+        <View className="overflow-hidden rounded-2xl border border-[#30363D] bg-[#202428]">
+          <View className="flex-row items-center px-4 py-4">
+            <View className="mr-3 h-10 w-10 items-center justify-center rounded-xl bg-[#292D32]">
+              <Ionicons name="person-outline" size={19} color="#80D160" />
+            </View>
+            <View className="flex-1">
+              <Text className="text-xs text-[#8B949E]">Nombre completo</Text>
+              <Text className="mt-0.5 font-medium text-white">{user.firstName} {user.lastName}</Text>
+            </View>
+          </View>
+
+          <View className="mx-4 h-px bg-[#30363D]" />
+
+          <View className="flex-row items-center px-4 py-4">
+            <View className="mr-3 h-10 w-10 items-center justify-center rounded-xl bg-[#292D32]">
+              <Ionicons name="mail-outline" size={19} color="#80D160" />
+            </View>
+            <View className="flex-1">
+              <Text className="text-xs text-[#8B949E]">Correo electrónico</Text>
+              <Text className="mt-0.5 font-medium text-white">{user.email}</Text>
+            </View>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          className="mt-6 flex-row items-center justify-center rounded-xl border border-[#653B40] bg-[#2B2225] py-4"
+          onPress={signOut}
+        >
+          <Ionicons name="log-out-outline" size={20} color="#F08A93" />
+          <Text className="ml-2 font-semibold text-[#F08A93]">Cerrar sesión</Text>
         </TouchableOpacity>
-      </View>
-    </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
