@@ -1,4 +1,5 @@
 import { Image, Pressable, Text, View } from "react-native";
+import { Link } from "expo-router";
 
 export default function VenuePreview({ venue, onClose }) {
   return (
@@ -23,13 +24,13 @@ export default function VenuePreview({ venue, onClose }) {
       <Text className="mt-1 text-zinc-400">
         {venue.phone}
       </Text>
-
-      <Pressable className="mt-4 items-center rounded-xl bg-green-500 py-3">
-        <Text className="font-semibold text-black">
-          Ver complejo
-        </Text>
-      </Pressable>
-
+      <Link href="../venueLayout" asChild>
+        <Pressable className="mt-4 items-center rounded-xl bg-green-500 py-3">
+          <Text className="font-semibold text-black">
+            Ver complejo
+          </Text>
+        </Pressable>
+      </Link>
     </View>
   );
 }

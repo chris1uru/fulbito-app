@@ -22,13 +22,16 @@ export default function Maps() {
     <>
       <MapView
         style={{ flex: 1 }}
-        initialRegion={{ latitude: -34.9, longitude: -56.16, latitudeDelta: 0.11, longitudeDelta: 0.11 }}
+        initialRegion={{ latitude: -34.897485940674585, longitude: -54.94943488276516, latitudeDelta: 0.09, longitudeDelta: 0.09
+          
+         }}
       >
         {venues.map((venue) => (
           <Marker
             key={venue.id}
             coordinate={{ latitude: Number(venue.location.latitude), longitude: Number(venue.location.longitude) }}
             onPress={() => setSelectedVenue(venue)}
+            pinColor="green"
           />
         ))}
       </MapView>

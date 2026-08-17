@@ -14,9 +14,7 @@ export default function BookingCard({ booking }) {
 
         <View className="flex-1 justify-between py-1">
           <View>
-            <Text className="text-lg font-semibold text-white">
-              {booking.name}
-            </Text>
+            
             <Text className="mt-1 text-xs text-[#A9B1B8]">
               {booking.date} · {booking.time}
             </Text>

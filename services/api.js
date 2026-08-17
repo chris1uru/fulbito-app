@@ -36,6 +36,7 @@ export const venuesApi = {
 
 export const courtsApi = {
   list: (venueId) => request(`/api/public/venues/${venueId}/courts`),
+  publicOne: (id) => request(`/api/public/courts/${id}`),
   create: (venueId, body) => request(`/api/owner/venues/${venueId}/courts`, { method: "POST", body }),
   update: (id, body) => request(`/api/owner/courts/${id}`, { method: "PUT", body }),
 };
