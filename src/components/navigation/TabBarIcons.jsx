@@ -1,8 +1,7 @@
-import { FontAwesome, Feather, Ionicons } from '@expo/vector-icons'
+import { FontAwesome, Feather, Ionicons } from "@expo/vector-icons";
 
 export const MapsIcon = (props) => (
-  <FontAwesome name="map-o" size={24} color="white" {...props}/>
-  
+  <FontAwesome name="map-o" size={24} color="white" {...props} />
 );
 
 export const CalendarIcon = (props) => (

@@ -10,8 +10,8 @@
     "lint": "expo lint"
   },
   "dependencies": {
-    "expo": "~54.0.35",
-    "expo-constants": "~18.0.13",
+    "expo": "~54.0.37",
+    "expo-constants": "~18.0.14",
     "expo-linking": "~8.0.12",
     "expo-router": "~6.0.24",
     "expo-secure-store": "~15.0.8",

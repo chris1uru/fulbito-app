@@ -33,7 +33,15 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn: (v) => authenticate(authApi.login, v), signUp: (v) => authenticate(authApi.registerPlayer, v), signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        signIn: (v) => authenticate(authApi.login, v),
+        signUp: (v) => authenticate(authApi.registerPlayer, v),
+        signOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

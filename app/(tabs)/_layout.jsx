@@ -1,38 +1,67 @@
 import { Tabs } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { MapsIcon, CalendarIcon, MessageIcon, AccountIcon } from "../../components/Icons";
+import {
+  AccountIcon,
+  CalendarIcon,
+  MapsIcon,
+  MessageIcon,
+} from "../../src/components/navigation/TabBarIcons";
 
 export default function TabsLayout() {
-    return (
-        <Tabs
-            screenOptions={{
-                headerShown: false, 
-                tabBarStyle: {
-                    backgroundColor: "#1E1E1E",
-                    borderTopColor: "transparent",
-                    height: 72,
-                    paddingTop: 7,
-                    paddingBottom: 7,
-                },
+  const { bottom } = useSafeAreaInsets();
+  return (
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: "#080B0D",
+          borderTopColor: "transparent",
+          height: 72,
+          paddingTop: 5,
+          paddingBottom: bottom + 10,
+        },
 
-                tabBarLabelStyle: {
-                    fontSize: 11,
-                    fontWeight: "500",
-                },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "500",
+        },
 
-                tabBarActiveTintColor: "#80D160",
-                tabBarInactiveTintColor: "#777",
-            }}
-        >
+        tabBarActiveTintColor: "#80D160",
+        tabBarInactiveTintColor: "white",
+      }}
+    >
+      <Tabs.Screen
+        name="maps"
+        options={{
+          title: "Map",
+          tabBarIcon: ({ color }) => <MapsIcon color={color} />,
+        }}
+      />
 
-            <Tabs.Screen name="maps" options={{ title: "Map", tabBarIcon: ({ color }) => <MapsIcon color={color} /> }} />
-            
-            <Tabs.Screen name="reservas" options={{ title: "Mis Reservas", tabBarIcon: ({ color }) => <CalendarIcon color={color} /> }} />
-            
-            <Tabs.Screen name="message" options={{ title: "Mensajes", tabBarIcon: ({ color }) => <MessageIcon color={color} /> }} />
-            
-            <Tabs.Screen name="perfil" options={{ title: "Perfil", tabBarIcon: ({ color }) => <AccountIcon color={color} /> }} />
-            
-        </Tabs>
-    );
+      <Tabs.Screen
+        name="reservas"
+        options={{
+          title: "Mis Reservas",
+          tabBarIcon: ({ color }) => <CalendarIcon color={color} />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="message"
+        options={{
+          title: "Mensajes",
+          tabBarIcon: ({ color }) => <MessageIcon color={color} />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="perfil"
+        options={{
+          title: "Perfil",
+          tabBarIcon: ({ color }) => <AccountIcon color={color} />,
+        }}
+      />
+    </Tabs>
+  );
 }

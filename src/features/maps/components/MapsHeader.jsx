@@ -1,10 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, Text, View, TextInput } from "react-native";
-import Header from "../components/Header";
+import AppHeader from "../../../components/common/AppHeader";
 
 export default function MapsHeader() {
   return (
-    <Header>
+    <AppHeader>
       <View className="mb-2 flex-row items-center gap-2">
         <View className=" flex-1 flex-row h-11 w-11 items-center rounded-md bg-[#2a2a2a] px-2 ">
           <Ionicons name="search" size={16} color="#A3A3A3" />
@@ -42,6 +42,6 @@ export default function MapsHeader() {
           </Pressable>
         </View>
       </View>
-    </Header>
+    </AppHeader>
   );
 }

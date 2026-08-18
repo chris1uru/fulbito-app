@@ -1,7 +1,7 @@
 import "../global.css";
 import { Stack } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
-import { AuthProvider, useAuth } from "../context/AuthContext";
+import { AuthProvider, useAuth } from "../src/providers/AuthProvider";
 
 export default function Layout() {
   return (
@@ -31,6 +31,7 @@ function Navigator() {
       <Stack.Protected guard={!!user}>
         <Stack.Screen name="index" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="venueLayout" />
       </Stack.Protected>
     </Stack>
   );
