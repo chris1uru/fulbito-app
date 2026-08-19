@@ -9,6 +9,7 @@ import {
   ScrollView,
   Text,
   View,
+  TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../../providers/AuthProvider";
@@ -31,9 +32,9 @@ function VenueCard({ venue, isAdmin, onPress }) {
   const status = STATUS[venue.status] ?? STATUS.INACTIVE;
 
   return (
-    <Pressable
-      onPress={onPress}
+     <TouchableOpacity
       className="mb-4 overflow-hidden rounded-3xl border border-[#30363D] bg-[#202428]"
+      onPress={onPress}
     >
       {venue.coverImageUrl ? (
         <Image
@@ -88,7 +89,7 @@ function VenueCard({ venue, isAdmin, onPress }) {
           <Ionicons name="arrow-forward" size={19} color="#80D160" />
         </View>
       </View>
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 

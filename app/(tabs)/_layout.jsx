@@ -15,9 +15,8 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: "#080B0D",
+          backgroundColor: "#17191C",
           borderTopColor: "transparent",
-          height: 72,
           paddingTop: 5,
           paddingBottom: bottom + 10,
         },
@@ -44,14 +43,6 @@ export default function TabsLayout() {
         options={{
           title: "Mis Reservas",
           tabBarIcon: ({ color }) => <CalendarIcon color={color} />,
-        }}
-      />
-
-      <Tabs.Screen
-        name="message"
-        options={{
-          title: "Mensajes",
-          tabBarIcon: ({ color }) => <MessageIcon color={color} />,
         }}
       />
 

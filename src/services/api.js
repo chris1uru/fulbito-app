@@ -108,9 +108,9 @@ export const scheduleApi = {
 export const reservationsApi = {
   create: (body) => request("/api/reservations", { method: "POST", body }),
   mine: () => request("/api/reservations/mine"),
-  ownerAgenda: (from, to) =>
+  ownerAgenda: (from, to, venueId) =>
     request(
-      `/api/reservations/owner-agenda?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+      `/api/reservations/owner-agenda?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${venueId ? `&venueId=${encodeURIComponent(venueId)}` : ""}`,
     ),
   markPaid: (id) =>
     request(`/api/reservations/${id}/mark-paid`, { method: "PATCH" }),
