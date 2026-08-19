@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Image, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
 
 const SURFACES = {
   SYNTHETIC_GRASS: "Césped sintético",
@@ -21,9 +21,14 @@ function formatPrice(value, currency) {
   return `${currency === "UYU" ? "$" : `${currency} `}${amount.toLocaleString("es-UY")}`;
 }
 
-export default function VenueCourtCard({ court, imageUrl }) {
+export default function VenueCourtCard({ court, imageUrl, selected, onPress }) {
   return (
-    <View className="mb-4 overflow-hidden rounded-2xl border border-[#264B36] bg-[#0D1517]">
+    <Pressable
+      onPress={onPress}
+      className={`mb-4 overflow-hidden rounded-2xl border bg-[#0D1517] ${
+        selected ? "border-[#80D160]" : "border-[#264B36]"
+      }`}
+    >
       {imageUrl ? (
         <Image
           source={{ uri: imageUrl }}
@@ -46,6 +51,14 @@ export default function VenueCourtCard({ court, imageUrl }) {
             </Text>
           </View>
           <View className="items-end">
+            {selected && (
+              <View className="mb-2 flex-row items-center rounded-full bg-[#2C4930] px-2.5 py-1">
+                <Ionicons name="checkmark" size={14} color="#80D160" />
+                <Text className="ml-1 text-xs font-semibold text-[#80D160]">
+                  Seleccionada
+                </Text>
+              </View>
+            )}
             <Text className="text-lg font-bold text-[#80D160]">
               {formatPrice(court.pricePerSlot, court.currency)}
             </Text>
@@ -72,6 +85,6 @@ export default function VenueCourtCard({ court, imageUrl }) {
           </View>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }

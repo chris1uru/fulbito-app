@@ -32,6 +32,12 @@ export function AuthProvider({ children }) {
     await removeToken();
   }
 
+  async function updateProfile(values) {
+    const updatedUser = await authApi.updateMe(values);
+    setUser(updatedUser);
+    return updatedUser;
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -39,6 +45,7 @@ export function AuthProvider({ children }) {
         loading,
         signIn: (v) => authenticate(authApi.login, v),
         signUp: (v) => authenticate(authApi.registerPlayer, v),
+        updateProfile,
         signOut,
       }}
     >

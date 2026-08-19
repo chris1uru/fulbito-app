@@ -34,20 +34,53 @@ export const authApi = {
   registerPlayer: (body) =>
     request("/api/auth/register-player", { method: "POST", body }),
   me: () => request("/api/users/me"),
+  updateMe: (body) => request("/api/users/me", { method: "PUT", body }),
 };
 
 export const venuesApi = {
   publicList: () => request("/api/public/venues"),
   publicOne: (id) => request(`/api/public/venues/${id}`),
   mine: () => request("/api/owner/venues"),
-  create: (body) => request("/api/owner/venues", { method: "POST", body }),
   update: (id, body) =>
     request(`/api/owner/venues/${id}`, { method: "PUT", body }),
+  adminList: () => request("/api/admin/venues"),
+  adminOne: (id) => request(`/api/admin/venues/${id}`),
+  adminCreate: (body) => request("/api/admin/venues", { method: "POST", body }),
+  adminUpdate: (id, body) =>
+    request(`/api/admin/venues/${id}`, { method: "PUT", body }),
+  adminAssignOwner: (id, ownerId) =>
+    request(`/api/admin/venues/${id}/owner`, {
+      method: "PATCH",
+      body: { ownerId },
+    }),
+  adminSetStatus: (id, status) =>
+    request(`/api/admin/venues/${id}/status`, {
+      method: "PATCH",
+      body: { status },
+    }),
+};
+
+export const adminUsersApi = {
+  search: (query = "", role = "OWNER") =>
+    request(
+      `/api/admin/users?query=${encodeURIComponent(query)}&role=${encodeURIComponent(role)}`,
+    ),
+  create: (body) => request("/api/admin/users", { method: "POST", body }),
+  setStatus: (id, status) =>
+    request(`/api/admin/users/${id}/status`, {
+      method: "PATCH",
+      body: { status },
+    }),
 };
 
 export const courtsApi = {
   list: (venueId) => request(`/api/public/venues/${venueId}/courts`),
+  managedList: (venueId) => request(`/api/owner/venues/${venueId}/courts`),
   publicOne: (id) => request(`/api/public/courts/${id}`),
+  availability: (id, date) =>
+    request(
+      `/api/public/courts/${id}/availability?date=${encodeURIComponent(date)}`,
+    ),
   create: (venueId, body) =>
     request(`/api/owner/venues/${venueId}/courts`, { method: "POST", body }),
   update: (id, body) =>
@@ -63,7 +96,10 @@ export const scheduleApi = {
     }),
   deleteHour: (id) =>
     request(`/api/owner/opening-hours/${id}`, { method: "DELETE" }),
-  blocks: (courtId) => request(`/api/owner/courts/${courtId}/blocks`),
+  blocks: (courtId, from, to) =>
+    request(
+      `/api/owner/courts/${courtId}/blocks?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    ),
   addBlock: (courtId, body) =>
     request(`/api/owner/courts/${courtId}/blocks`, { method: "POST", body }),
   deleteBlock: (id) => request(`/api/owner/blocks/${id}`, { method: "DELETE" }),

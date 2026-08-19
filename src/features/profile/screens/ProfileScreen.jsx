@@ -1,10 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../../providers/AuthProvider";
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
+  const router = useRouter();
+  const canManageVenues = user.role === "OWNER" || user.role === "ADMIN";
+  const roleLabel = {
+    ADMIN: "Administrador",
+    OWNER: "Dueño de complejo",
+    PLAYER: "Jugador",
+  }[user.role];
 
   return (
     <SafeAreaView
@@ -45,7 +53,7 @@ export default function ProfileScreen() {
               </View>
               <View className="rounded-lg bg-[#2C4930] px-3 py-1.5">
                 <Text className="text-xs font-semibold text-[#80D160]">
-                  {user.role}
+                  {roleLabel ?? user.role}
                 </Text>
               </View>
             </View>
@@ -82,6 +90,78 @@ export default function ProfileScreen() {
             </View>
           </View>
         </View>
+
+        <TouchableOpacity
+          className="mt-4 flex-row items-center justify-center rounded-xl bg-[#80D160] py-4"
+          onPress={() => router.push("/profileEdit")}
+        >
+          <Ionicons name="create-outline" size={20} color="#152012" />
+          <Text className="ml-2 font-semibold text-[#152012]">
+            Editar mis datos
+          </Text>
+        </TouchableOpacity>
+
+        {canManageVenues && (
+          <>
+            <Text className="mb-3 mt-6 text-xs font-semibold uppercase tracking-widest text-[#8B949E]">
+              Gestión
+            </Text>
+            <View className="overflow-hidden rounded-2xl border border-[#30363D] bg-[#202428]">
+              <TouchableOpacity
+                className="flex-row items-center px-4 py-4"
+                onPress={() => router.push("/venueManagement")}
+              >
+                <View className="mr-3 h-11 w-11 items-center justify-center rounded-xl bg-[#2C4930]">
+                  <Ionicons name="business-outline" size={21} color="#80D160" />
+                </View>
+                <View className="flex-1">
+                  <Text className="font-semibold text-white">
+                    {user.role === "ADMIN"
+                      ? "Administrar complejos"
+                      : "Mis complejos"}
+                  </Text>
+                  <Text className="mt-1 text-xs leading-4 text-[#8B949E]">
+                    {user.role === "ADMIN"
+                      ? "Alta, edición, asignación y desactivación"
+                      : "Editá la información de los complejos a tu cargo"}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#69727B" />
+              </TouchableOpacity>
+
+              {user.role === "ADMIN" && (
+                <>
+                  <View className="mx-4 h-px bg-[#30363D]" />
+                  <TouchableOpacity
+                    onPress={() => router.push("/userManagement")}
+                    className="flex-row items-center px-4 py-4"
+                  >
+                    <View className="mr-3 h-11 w-11 items-center justify-center rounded-xl bg-[#292D32]">
+                      <Ionicons
+                        name="people-outline"
+                        size={21}
+                        color="#A9B1B8"
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="font-semibold text-white">
+                        Administrar usuarios
+                      </Text>
+                      <Text className="mt-1 text-xs leading-4 text-[#8B949E]">
+                        Crear usuarios y asignar responsables
+                      </Text>
+                    </View>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color="#69727B"
+                    />
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          </>
+        )}
 
         <TouchableOpacity
           className="mt-6 flex-row items-center justify-center rounded-xl border border-[#653B40] bg-[#2B2225] py-4"

@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -10,9 +11,11 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "../../../providers/AuthProvider";
 import {
   courtsApi,
   imagesApi,
+  reservationsApi,
   scheduleApi,
   venuesApi,
 } from "../../../services/api";
@@ -42,11 +45,43 @@ function shortTime(time) {
   return time?.slice(0, 5) ?? "--:--";
 }
 
+function dateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function dateLabel(value) {
+  return new Date(`${value}T12:00:00`).toLocaleDateString("es-UY", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+}
+
+function slotTime(value) {
+  return new Date(value).toLocaleTimeString("es-UY", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export default function VenueDetailScreen() {
   const { venueId: rawVenueId } = useLocalSearchParams();
   const venueId = Array.isArray(rawVenueId) ? rawVenueId[0] : rawVenueId;
   const router = useRouter();
+  const { user } = useAuth();
   const { top, bottom } = useSafeAreaInsets();
+  const dates = useMemo(() => {
+    const start = new Date();
+    start.setHours(12, 0, 0, 0);
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(start);
+      date.setDate(start.getDate() + index);
+      return dateKey(date);
+    });
+  }, []);
   const [venue, setVenue] = useState(null);
   const [venueImages, setVenueImages] = useState([]);
   const [courts, setCourts] = useState([]);
@@ -54,6 +89,12 @@ export default function VenueDetailScreen() {
   const [openingHours, setOpeningHours] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedCourtId, setSelectedCourtId] = useState("");
+  const [selectedDate, setSelectedDate] = useState(dates[0]);
+  const [availability, setAvailability] = useState(null);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState("");
+  const [bookingSlot, setBookingSlot] = useState("");
 
   useEffect(() => {
     if (!venueId) {
@@ -83,6 +124,7 @@ export default function VenueDetailScreen() {
         setVenue(venueData);
         setVenueImages(imageData);
         setCourts(activeCourts);
+        setSelectedCourtId((current) => current || activeCourts[0]?.id || "");
         setOpeningHours(hoursData);
         setCourtImages(Object.fromEntries(imageEntries));
       })
@@ -97,6 +139,81 @@ export default function VenueDetailScreen() {
       active = false;
     };
   }, [venueId]);
+
+  useEffect(() => {
+    if (!selectedCourtId || !selectedDate) {
+      setAvailability(null);
+      return;
+    }
+    let active = true;
+    setAvailabilityError("");
+    setAvailabilityLoading(true);
+    courtsApi
+      .availability(selectedCourtId, selectedDate)
+      .then((data) => {
+        if (active) setAvailability(data);
+      })
+      .catch((requestError) => {
+        if (active) setAvailabilityError(requestError.message);
+      })
+      .finally(() => {
+        if (active) setAvailabilityLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedCourtId, selectedDate]);
+
+  function reserve(slot) {
+    if (!slot.available) return;
+    if (user.role !== "PLAYER") {
+      Alert.alert(
+        "Vista de disponibilidad",
+        "Las reservas manuales de dueño o administrador se cargan desde la agenda.",
+      );
+      return;
+    }
+    const court = courts.find((item) => item.id === selectedCourtId);
+    Alert.alert(
+      "Confirmar reserva",
+      `${court?.name}\n${dateLabel(selectedDate)} a las ${slotTime(slot.startsAt)}\n$ ${Number(court?.pricePerSlot).toLocaleString("es-UY")}`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Reservar",
+          onPress: async () => {
+            try {
+              setBookingSlot(slot.startsAt);
+              await reservationsApi.create({
+                courtId: selectedCourtId,
+                startsAt: slot.startsAt,
+                endsAt: slot.endsAt,
+                playerName: null,
+                playerPhone: null,
+                notes: null,
+              });
+              setAvailability((current) => ({
+                ...current,
+                slots: current.slots.map((item) =>
+                  item.startsAt === slot.startsAt
+                    ? { ...item, available: false }
+                    : item,
+                ),
+              }));
+              Alert.alert(
+                "Reserva confirmada",
+                "El turno ya aparece en tu agenda.",
+              );
+            } catch (requestError) {
+              Alert.alert("No se pudo reservar", requestError.message);
+            } finally {
+              setBookingSlot("");
+            }
+          },
+        },
+      ],
+    );
+  }
 
   if (loading) {
     return (
@@ -250,8 +367,108 @@ export default function VenueDetailScreen() {
                 key={court.id}
                 court={court}
                 imageUrl={courtImages[court.id]}
+                selected={court.id === selectedCourtId}
+                onPress={() => setSelectedCourtId(court.id)}
               />
             ))
+          )}
+
+          {courts.length > 0 && (
+            <>
+              <View className="my-3 h-px bg-[#252D31]" />
+              <Text className="mt-3 text-xl font-bold text-white">
+                Disponibilidad
+              </Text>
+              <Text className="mb-4 mt-1 text-sm text-[#8B949E]">
+                Elegí una cancha, una fecha y un turno libre.
+              </Text>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                className="mb-4"
+              >
+                {dates.map((date) => (
+                  <Pressable
+                    key={date}
+                    onPress={() => setSelectedDate(date)}
+                    className={`mr-2 rounded-xl border px-4 py-3 ${
+                      selectedDate === date
+                        ? "border-[#80D160] bg-[#2C4930]"
+                        : "border-[#252D31] bg-[#0D1517]"
+                    }`}
+                  >
+                    <Text
+                      className={`font-semibold capitalize ${
+                        selectedDate === date
+                          ? "text-[#80D160]"
+                          : "text-[#A9B1B8]"
+                      }`}
+                    >
+                      {dateLabel(date)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+
+              <View className="rounded-2xl border border-[#252D31] bg-[#0D1517] p-4">
+                {availabilityLoading ? (
+                  <View className="items-center py-5">
+                    <ActivityIndicator color="#80D160" />
+                    <Text className="mt-2 text-sm text-[#8B949E]">
+                      Consultando turnos reales...
+                    </Text>
+                  </View>
+                ) : availabilityError ? (
+                  <View className="items-center py-4">
+                    <Ionicons
+                      name="alert-circle-outline"
+                      size={26}
+                      color="#F08A93"
+                    />
+                    <Text className="mt-2 text-center text-sm text-[#F08A93]">
+                      {availabilityError}
+                    </Text>
+                  </View>
+                ) : !availability?.slots?.length ? (
+                  <Text className="text-center text-[#8B949E]">
+                    No hay turnos configurados para esta fecha.
+                  </Text>
+                ) : (
+                  <View className="flex-row flex-wrap">
+                    {availability.slots.map((slot) => (
+                      <Pressable
+                        key={slot.startsAt}
+                        disabled={!slot.available || !!bookingSlot}
+                        onPress={() => reserve(slot)}
+                        className={`mb-2 mr-2 min-w-[88px] items-center rounded-xl border px-3 py-3 ${
+                          slot.available
+                            ? "border-[#315C3B] bg-[#142019]"
+                            : "border-[#252D31] bg-[#202428]"
+                        }`}
+                      >
+                        <Text
+                          className={`font-bold ${
+                            slot.available
+                              ? "text-[#80D160]"
+                              : "text-[#69727B] line-through"
+                          }`}
+                        >
+                          {slotTime(slot.startsAt)}
+                        </Text>
+                        <Text className="mt-1 text-[10px] text-[#8B949E]">
+                          {bookingSlot === slot.startsAt
+                            ? "Reservando..."
+                            : slot.available
+                              ? "Disponible"
+                              : "Ocupado"}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+              </View>
+            </>
           )}
 
           <View className="my-3 h-px bg-[#252D31]" />

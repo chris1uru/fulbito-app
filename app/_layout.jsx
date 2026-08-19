@@ -31,7 +31,22 @@ function Navigator() {
       <Stack.Protected guard={!!user}>
         <Stack.Screen name="index" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="profileEdit" />
         <Stack.Screen name="venueLayout" />
+        <Stack.Protected
+          guard={user?.role === "OWNER" || user?.role === "ADMIN"}
+        >
+          <Stack.Screen name="venueManagement" />
+          <Stack.Screen name="manageVenue" />
+          <Stack.Screen name="venueForm" />
+          <Stack.Screen name="courtManagement" />
+          <Stack.Screen name="courtForm" />
+          <Stack.Screen name="scheduleManagement" />
+        </Stack.Protected>
+        <Stack.Protected guard={user?.role === "ADMIN"}>
+          <Stack.Screen name="userManagement" />
+          <Stack.Screen name="userForm" />
+        </Stack.Protected>
       </Stack.Protected>
     </Stack>
   );
