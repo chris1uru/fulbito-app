@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -13,7 +14,8 @@ import AdminVenueSelector from "./AdminVenueSelector";
 import ReservationManagementList from "./ReservationManagementList";
 
 export default function ManagedReservationsView({ isAdmin }) {
-  const { top } = useSafeAreaInsets();
+  const { top, bottom } = useSafeAreaInsets();
+  const router = useRouter();
   const [venues, setVenues] = useState([]);
   const [courts, setCourts] = useState([]);
   const [selectedVenue, setSelectedVenue] = useState(null);
@@ -55,36 +57,45 @@ export default function ManagedReservationsView({ isAdmin }) {
       });
   }, [isAdmin]);
 
-  useEffect(() => {
+  const loadAgenda = useCallback(async () => {
     if (isAdmin && !selectedVenue) return;
 
     const from = new Date(month.getFullYear(), month.getMonth(), 1);
     const to = new Date(month.getFullYear(), month.getMonth() + 1, 1);
     setLoading(true);
     setError("");
-    const loadReservations = reservationsApi.ownerAgenda(
-      from.toISOString(),
-      to.toISOString(),
-      selectedVenue?.id,
-    );
-    const loadCourts = selectedVenue
-      ? courtsApi.managedList(selectedVenue.id)
-      : Promise.resolve(null);
 
-    Promise.all([loadReservations, loadCourts])
-      .then(([data, venueCourts]) => {
-        setReservations(
-          selectedVenue
-            ? data.filter(
-                (reservation) => reservation.venueId === selectedVenue.id,
-              )
-            : data,
-        );
-        if (venueCourts) setCourts(venueCourts);
-      })
-      .catch((requestError) => setError(requestError.message))
-      .finally(() => setLoading(false));
+    try {
+      const [data, venueCourts] = await Promise.all([
+        reservationsApi.ownerAgenda(
+          from.toISOString(),
+          to.toISOString(),
+          selectedVenue?.id,
+        ),
+        selectedVenue
+          ? courtsApi.managedList(selectedVenue.id)
+          : Promise.resolve(null),
+      ]);
+      setReservations(
+        selectedVenue
+          ? data.filter(
+              (reservation) => reservation.venueId === selectedVenue.id,
+            )
+          : data,
+      );
+      if (venueCourts) setCourts(venueCourts);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setLoading(false);
+    }
   }, [isAdmin, month, selectedVenue]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadAgenda();
+    }, [loadAgenda]),
+  );
 
   function changeMonth(offset) {
     setMonth(
@@ -156,7 +167,10 @@ export default function ManagedReservationsView({ isAdmin }) {
       ) : choosingVenue ? (
         <AdminVenueSelector venues={venues} onSelect={selectVenue} />
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: bottom + 88 }}
+        >
           {isAdmin && (
             <Pressable
               onPress={clearSelectedVenue}
@@ -168,6 +182,23 @@ export default function ManagedReservationsView({ isAdmin }) {
               </Text>
             </Pressable>
           )}
+
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: "/manualReservation",
+                params: selectedVenue?.id
+                  ? { venueId: selectedVenue.id }
+                  : undefined,
+              })
+            }
+            className="mx-4 mb-4 flex-row items-center justify-center rounded-xl bg-[#80D160] py-3.5"
+          >
+            <Ionicons name="add-circle-outline" size={20} color="#152012" />
+            <Text className="ml-2 font-semibold text-[#152012]">
+              Nueva reserva manual
+            </Text>
+          </Pressable>
 
           <View className="mx-4 mb-4 flex-row items-center justify-between rounded-xl border border-[#30363D] bg-[#202428] p-2">
             <Pressable
@@ -206,6 +237,12 @@ export default function ManagedReservationsView({ isAdmin }) {
             onStatusFilterChange={setStatusFilter}
             sortBy={sortBy}
             onSortChange={setSortBy}
+            onReservationPress={(reservation) =>
+              router.push({
+                pathname: "/reservaDetail",
+                params: { reservationId: reservation.id },
+              })
+            }
           />
         </ScrollView>
       )}

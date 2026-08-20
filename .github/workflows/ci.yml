@@ -1,0 +1,21 @@
+name: App CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - name: Bundle iOS, Android and web
+        env:
+          EXPO_PUBLIC_API_URL: http://127.0.0.1:8080
+        run: npx expo export --platform all --output-dir dist-ci

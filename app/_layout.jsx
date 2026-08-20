@@ -33,6 +33,7 @@ function Navigator() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="profileEdit" />
         <Stack.Screen name="venueLayout" />
+        <Stack.Screen name="reservaDetail" />
         <Stack.Protected
           guard={user?.role === "OWNER" || user?.role === "ADMIN"}
         >
@@ -42,6 +43,8 @@ function Navigator() {
           <Stack.Screen name="courtManagement" />
           <Stack.Screen name="courtForm" />
           <Stack.Screen name="scheduleManagement" />
+          <Stack.Screen name="manualReservation" />
+          <Stack.Screen name="imageManagement" />
         </Stack.Protected>
         <Stack.Protected guard={user?.role === "ADMIN"}>
           <Stack.Screen name="userManagement" />

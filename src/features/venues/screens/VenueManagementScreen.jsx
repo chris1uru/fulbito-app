@@ -32,7 +32,7 @@ function VenueCard({ venue, isAdmin, onPress }) {
   const status = STATUS[venue.status] ?? STATUS.INACTIVE;
 
   return (
-     <TouchableOpacity
+    <TouchableOpacity
       className="mb-4 overflow-hidden rounded-3xl border border-[#30363D] bg-[#202428]"
       onPress={onPress}
     >
@@ -104,7 +104,8 @@ export default function VenueManagementScreen() {
 
   const loadVenues = useCallback(
     async (refresh = false) => {
-      refresh ? setRefreshing(true) : setLoading(true);
+      if (refresh) setRefreshing(true);
+      else setLoading(true);
       setError("");
       try {
         const data = isAdmin

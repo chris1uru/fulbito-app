@@ -1,11 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function AdminVenueSelector({ venues, onSelect }) {
+  const { bottom } = useSafeAreaInsets();
+
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
-      contentContainerClassName="px-4 pb-10"
+      contentContainerClassName="px-4"
+      contentContainerStyle={{ paddingBottom: bottom + 88 }}
     >
       <Text className="mb-3 text-xs font-semibold uppercase tracking-widest text-[#8B949E]">
         Seleccioná un complejo

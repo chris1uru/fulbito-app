@@ -10,8 +10,11 @@
     "lint": "expo lint"
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.0.3",
     "expo": "~54.0.37",
     "expo-constants": "~18.0.14",
+    "expo-image-manipulator": "~14.0.8",
+    "expo-image-picker": "~17.0.11",
     "expo-linking": "~8.0.12",
     "expo-router": "~6.0.24",
     "expo-secure-store": "~15.0.8",

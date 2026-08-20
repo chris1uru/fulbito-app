@@ -46,7 +46,8 @@ export default function CourtManagementScreen() {
 
   const load = useCallback(
     async (refresh = false) => {
-      refresh ? setRefreshing(true) : setLoading(true);
+      if (refresh) setRefreshing(true);
+      else setLoading(true);
       setError("");
       try {
         setCourts(await courtsApi.managedList(venueId));
@@ -74,6 +75,17 @@ export default function CourtManagementScreen() {
         venueName,
         mode: court ? "edit" : "create",
         ...(court ? { courtId: court.id } : {}),
+      },
+    });
+  }
+
+  function openPhotos(court) {
+    router.push({
+      pathname: "/imageManagement",
+      params: {
+        target: "court",
+        targetId: court.id,
+        targetName: court.name,
       },
     });
   }
@@ -148,9 +160,8 @@ export default function CourtManagementScreen() {
             </View>
           ) : (
             courts.map((court) => (
-              <Pressable
+              <View
                 key={court.id}
-                onPress={() => openForm(court)}
                 className="mb-4 rounded-3xl border border-[#30363D] bg-[#202428] p-5"
               >
                 <View className="flex-row items-start justify-between">
@@ -196,13 +207,27 @@ export default function CourtManagementScreen() {
                   </View>
                 </View>
 
-                <View className="mt-4 flex-row items-center justify-between border-t border-[#30363D] pt-4">
-                  <Text className="font-semibold text-[#80D160]">
-                    Editar cancha
-                  </Text>
-                  <Ionicons name="create-outline" size={19} color="#80D160" />
+                <View className="mt-4 flex-row gap-2 border-t border-[#30363D] pt-4">
+                  <Pressable
+                    onPress={() => openForm(court)}
+                    className="flex-1 flex-row items-center justify-center rounded-xl border border-[#3B4249] py-3"
+                  >
+                    <Ionicons name="create-outline" size={18} color="#C5CBD1" />
+                    <Text className="ml-2 font-semibold text-[#C5CBD1]">
+                      Editar
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => openPhotos(court)}
+                    className="flex-1 flex-row items-center justify-center rounded-xl bg-[#80D160] py-3"
+                  >
+                    <Ionicons name="images-outline" size={18} color="#152012" />
+                    <Text className="ml-2 font-semibold text-[#152012]">
+                      Fotos
+                    </Text>
+                  </Pressable>
                 </View>
-              </Pressable>
+              </View>
             ))
           )}
         </ScrollView>

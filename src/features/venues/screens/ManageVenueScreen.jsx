@@ -92,6 +92,17 @@ export default function ManageVenueScreen() {
   );
 
   function openAction(action) {
+    if (action.key === "photos") {
+      router.push({
+        pathname: "/imageManagement",
+        params: {
+          target: "venue",
+          targetId: venue.id,
+          targetName: venue.name,
+        },
+      });
+      return;
+    }
     if (action.key === "courts") {
       router.push({
         pathname: "/courtManagement",
@@ -110,10 +121,6 @@ export default function ManageVenueScreen() {
       router.push("/reservas");
       return;
     }
-    Alert.alert(
-      action.title,
-      "Este acceso ya forma parte del panel. Lo conectaremos en el siguiente bloque de implementación.",
-    );
   }
 
   function requestDeactivation() {

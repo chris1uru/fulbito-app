@@ -1,11 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { useAuth } from "../../../providers/AuthProvider";
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
+  const { bottom } = useSafeAreaInsets();
   const router = useRouter();
   const canManageVenues = user.role === "OWNER" || user.role === "ADMIN";
   const roleLabel = {
@@ -19,7 +23,14 @@ export default function ProfileScreen() {
       style={{ flex: 1, backgroundColor: "#17191C" }}
       edges={["top"]}
     >
-      <ScrollView contentContainerClassName="px-4 pb-8 pt-5">
+      <ScrollView
+        contentContainerClassName="px-4 pt-5"
+        contentContainerStyle={{
+          paddingTop: 16,
+          paddingHorizontal: 12,
+          paddingBottom: bottom + 88,
+        }}
+      >
         <View className="mb-6 flex-row items-center justify-between">
           <View>
             <Text className="text-3xl font-semibold text-white">Mi perfil</Text>

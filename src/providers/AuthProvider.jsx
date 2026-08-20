@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { authApi, setApiToken } from "../services/api";
+import { authApi, setApiToken, setUnauthorizedHandler } from "../services/api";
 import { getToken, removeToken, saveToken } from "../services/session";
 
 const AuthContext = createContext(null);
@@ -7,6 +7,16 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setUnauthorizedHandler(async () => {
+      setApiToken(null);
+      setUser(null);
+      await removeToken();
+    });
+
+    return () => setUnauthorizedHandler(null);
+  }, []);
 
   useEffect(() => {
     getToken()

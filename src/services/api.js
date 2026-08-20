@@ -1,25 +1,59 @@
 const API_URL = (
   process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8080"
 ).replace(/\/$/, "");
+const REQUEST_TIMEOUT_MS = 15_000;
 
 let token = null;
+let unauthorizedHandler = null;
+
 export const setApiToken = (value) => {
   token = value;
 };
 
+export const setUnauthorizedHandler = (handler) => {
+  unauthorizedHandler = handler;
+};
+
 async function request(path, { body, ...options } = {}) {
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      ...(body ? { "Content-Type": "application/json" } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const controller = new AbortController();
+  const requestToken = token;
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let response;
+
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers: {
+        ...(body ? { "Content-Type": "application/json" } : {}),
+        ...(requestToken ? { Authorization: `Bearer ${requestToken}` } : {}),
+        ...options.headers,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error(
+        "La solicitud tardó demasiado. Revisá tu conexión e intentá nuevamente.",
+      );
+    }
+
+    throw new Error(
+      "No pudimos conectarnos con el servidor. Revisá tu conexión e intentá nuevamente.",
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (response.status === 204) return null;
   const data = await response.json().catch(() => null);
+
+  if (response.status === 401 && requestToken) {
+    token = null;
+    await unauthorizedHandler?.();
+    throw new Error("Tu sesión venció. Iniciá sesión nuevamente.");
+  }
+
   if (!response.ok)
     throw new Error(
       Object.values(data?.fieldErrors ?? {}).join("\n") ||
@@ -40,6 +74,10 @@ export const authApi = {
 export const venuesApi = {
   publicList: () => request("/api/public/venues"),
   publicOne: (id) => request(`/api/public/venues/${id}`),
+  availability: (date, time) =>
+    request(
+      `/api/public/venues/availability?date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}`,
+    ),
   mine: () => request("/api/owner/venues"),
   update: (id, body) =>
     request(`/api/owner/venues/${id}`, { method: "PUT", body }),
@@ -107,6 +145,7 @@ export const scheduleApi = {
 
 export const reservationsApi = {
   create: (body) => request("/api/reservations", { method: "POST", body }),
+  one: (id) => request(`/api/reservations/${id}`),
   mine: () => request("/api/reservations/mine"),
   ownerAgenda: (from, to, venueId) =>
     request(
@@ -125,10 +164,20 @@ export const departmentsApi = { list: () => request("/api/departments") };
 export const imagesApi = {
   venueList: (id) => request(`/api/public/venues/${id}/images`),
   courtList: (id) => request(`/api/public/courts/${id}/images`),
+  prepareVenue: (id) =>
+    request(`/api/owner/venues/${id}/images/upload-signature`, {
+      method: "POST",
+    }),
+  prepareCourt: (id) =>
+    request(`/api/owner/courts/${id}/images/upload-signature`, {
+      method: "POST",
+    }),
   addVenue: (id, body) =>
     request(`/api/owner/venues/${id}/images`, { method: "POST", body }),
   addCourt: (id, body) =>
     request(`/api/owner/courts/${id}/images`, { method: "POST", body }),
+  setVenueCover: (id) =>
+    request(`/api/owner/venue-images/${id}/cover`, { method: "PATCH" }),
   deleteVenue: (id) =>
     request(`/api/owner/venue-images/${id}`, { method: "DELETE" }),
   deleteCourt: (id) =>

@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { ScrollView, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
 const PAYMENT_LABELS = {
   PENDING: "Pendiente",
@@ -35,13 +35,16 @@ function formatAmount(amount, currency) {
   return `${currency === "UYU" ? "$" : `${currency ?? "$"} `}${value.toLocaleString("es-UY")}`;
 }
 
-function ReservationRow({ reservation }) {
+function ReservationRow({ reservation, onPress }) {
   const startsAt = new Date(reservation.startsAt);
   const isCancelled = reservation.status?.startsWith("CANCELLED");
   const isPaid = reservation.paymentStatus === "PAID";
 
   return (
-    <View className="mb-3 rounded-2xl border border-[#30363D] bg-[#202428] p-4">
+    <Pressable
+      onPress={onPress}
+      className="mb-3 rounded-2xl border border-[#30363D] bg-[#202428] p-4"
+    >
       <View className="flex-row items-start justify-between">
         <View className="mr-3 flex-1">
           <Text className="text-xs text-[#8B949E]">Cancha</Text>
@@ -122,7 +125,13 @@ function ReservationRow({ reservation }) {
           </View>
         </View>
       </View>
-    </View>
+      <View className="mt-3 flex-row items-center justify-end">
+        <Text className="mr-1 text-xs font-semibold text-[#80D160]">
+          Ver detalle
+        </Text>
+        <Ionicons name="chevron-forward" size={15} color="#80D160" />
+      </View>
+    </Pressable>
   );
 }
 
@@ -139,6 +148,7 @@ export default function ReservationManagementList({
   onStatusFilterChange,
   sortBy,
   onSortChange,
+  onReservationPress,
 }) {
   const normalizedQuery = query.trim().toLowerCase();
   const filteredReservations = reservations
@@ -279,7 +289,11 @@ export default function ReservationManagementList({
           </View>
         ) : (
           filteredReservations.map((reservation) => (
-            <ReservationRow key={reservation.id} reservation={reservation} />
+            <ReservationRow
+              key={reservation.id}
+              reservation={reservation}
+              onPress={() => onReservationPress(reservation)}
+            />
           ))
         )}
       </View>

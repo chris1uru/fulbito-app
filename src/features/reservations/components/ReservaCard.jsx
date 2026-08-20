@@ -29,8 +29,8 @@ export default function ReservaCard({
     return (
       <Link
         href={{
-          pathname: "/ReservaLayout",
-          params: { venueId: reservation.venueId },
+          pathname: "/reservaDetail",
+          params: { reservationId: reservation.id },
         }}
         asChild
       >
@@ -219,8 +219,8 @@ export default function ReservaCard({
 
         <Link
           href={{
-            pathname: "/ReservaLayout",
-            params: { venueId: reservation.venueId },
+            pathname: "/reservaDetail",
+            params: { reservationId: reservation.id },
           }}
           asChild
         >

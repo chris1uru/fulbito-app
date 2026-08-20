@@ -19,6 +19,7 @@ const EMPTY_FORM = {
   description: "",
   phone: "",
   whatsappPhone: "",
+  cancellationNoticeHours: "4",
   departmentCode: "MAL",
   city: "Maldonado",
   neighborhood: "",
@@ -64,6 +65,7 @@ function toForm(venue) {
     description: venue.description ?? "",
     phone: venue.phone ?? "",
     whatsappPhone: venue.whatsappPhone ?? "",
+    cancellationNoticeHours: String(venue.cancellationNoticeHours ?? 4),
     departmentCode: venue.location?.departmentCode ?? "MAL",
     city: venue.location?.city ?? "",
     neighborhood: venue.location?.neighborhood ?? "",
@@ -124,6 +126,7 @@ export default function VenueFormScreen() {
       description: form.description.trim() || null,
       phone: form.phone.trim() || null,
       whatsappPhone: form.whatsappPhone.trim() || null,
+      cancellationNoticeHours: Number(form.cancellationNoticeHours),
       status: form.status,
       location: {
         departmentCode: form.departmentCode.trim().toUpperCase(),
@@ -162,6 +165,19 @@ export default function VenueFormScreen() {
       !Number.isFinite(Number(form.longitude))
     ) {
       Alert.alert("Ubicación inválida", "Revisá la latitud y la longitud.");
+      return;
+    }
+
+    const cancellationNoticeHours = Number(form.cancellationNoticeHours);
+    if (
+      !Number.isInteger(cancellationNoticeHours) ||
+      cancellationNoticeHours < 0 ||
+      cancellationNoticeHours > 168
+    ) {
+      Alert.alert(
+        "Plazo inválido",
+        "La anticipación debe ser una cantidad de horas enteras entre 0 y 168.",
+      );
       return;
     }
 
@@ -379,6 +395,40 @@ export default function VenueFormScreen() {
             keyboardType="phone-pad"
             placeholder="+598..."
           />
+        </View>
+
+        <View className="mb-5 rounded-3xl border border-[#30363D] bg-[#202428] p-4">
+          <View className="mb-3 flex-row items-center">
+            <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#2C4930]">
+              <Ionicons name="time-outline" size={21} color="#80D160" />
+            </View>
+            <View className="ml-3 flex-1">
+              <Text className="text-lg font-semibold text-white">
+                Política de cancelación
+              </Text>
+              <Text className="mt-0.5 text-xs text-[#8B949E]">
+                Se aplica a todo el complejo
+              </Text>
+            </View>
+          </View>
+
+          <Field
+            label="Horas de anticipación"
+            value={form.cancellationNoticeHours}
+            onChangeText={(value) =>
+              update("cancellationNoticeHours", value.replace(/[^0-9]/g, ""))
+            }
+            keyboardType="number-pad"
+            placeholder="4"
+          />
+
+          <View className="rounded-xl border border-[#315C3B] bg-[#142019] p-3">
+            <Text className="text-xs leading-5 text-[#B7D7AF]">
+              Cada reserva conservará el plazo vigente cuando fue creada. Si el
+              jugador cancela después, quedará registrada como tardía. En este
+              MVP todavía no se aplican sanciones automáticas.
+            </Text>
+          </View>
         </View>
 
         <View className="mb-5 rounded-3xl border border-[#30363D] bg-[#202428] p-4">

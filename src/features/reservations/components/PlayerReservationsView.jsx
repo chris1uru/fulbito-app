@@ -1,12 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { imagesApi, reservationsApi } from "../../../services/api";
 import ReservaCard from "./ReservaCard";
 
 export default function PlayerReservationsView() {
-  const { top } = useSafeAreaInsets();
+  const { top, bottom } = useSafeAreaInsets();
   const [reservations, setReservations] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -29,22 +30,43 @@ export default function PlayerReservationsView() {
     .filter((reservation) => new Date(reservation.startsAt).getTime() < now)
     .reverse();
 
-  useEffect(() => {
-    reservationsApi
-      .mine()
-      .then(async (data) => {
-        setReservations(data);
-        const results = await Promise.all(
-          data.map(async (reservation) => {
-            const images = await imagesApi.courtList(reservation.courtId);
-            return [reservation.courtId, images[0]?.url];
-          }),
-        );
-        setCourtImages(Object.fromEntries(results));
-      })
-      .catch((requestError) => setError(requestError.message))
-      .finally(() => setLoading(false));
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      setLoading(true);
+      setError("");
+
+      reservationsApi
+        .mine()
+        .then(async (data) => {
+          const courtIds = [
+            ...new Set(data.map((reservation) => reservation.courtId)),
+          ];
+          const results = await Promise.all(
+            courtIds.map(async (courtId) => {
+              const images = await imagesApi.courtList(courtId).catch(() => []);
+              return [courtId, images[0]?.url];
+            }),
+          );
+          return { data, images: Object.fromEntries(results) };
+        })
+        .then(({ data, images }) => {
+          if (!active) return;
+          setReservations(data);
+          setCourtImages(images);
+        })
+        .catch((requestError) => {
+          if (active) setError(requestError.message);
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
 
   return (
     <View className="flex-1 bg-[#17191C]" style={{ paddingTop: top + 5 }}>
@@ -85,7 +107,8 @@ export default function PlayerReservationsView() {
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerClassName="px-4 pb-10"
+          contentContainerClassName="px-4"
+          contentContainerStyle={{ paddingBottom: bottom + 88 }}
         >
           {nextReservation && (
             <>

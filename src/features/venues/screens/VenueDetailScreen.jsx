@@ -31,6 +31,10 @@ const DAYS = [
   "Domingo",
 ];
 
+function single(value) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 function buildAddress(location) {
   if (!location) return "Ubicación no informada";
   const street = [location.street, location.streetNumber]
@@ -52,6 +56,12 @@ function dateKey(date) {
   return `${year}-${month}-${day}`;
 }
 
+function validDateKey(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value ?? "")) return false;
+  const parsed = new Date(`${value}T12:00:00`);
+  return !Number.isNaN(parsed.getTime()) && dateKey(parsed) === value;
+}
+
 function dateLabel(value) {
   return new Date(`${value}T12:00:00`).toLocaleDateString("es-UY", {
     weekday: "short",
@@ -67,21 +77,32 @@ function slotTime(value) {
   });
 }
 
+function slotTimeKey(value) {
+  return value?.split("T")[1]?.slice(0, 5) ?? "";
+}
+
 export default function VenueDetailScreen() {
-  const { venueId: rawVenueId } = useLocalSearchParams();
-  const venueId = Array.isArray(rawVenueId) ? rawVenueId[0] : rawVenueId;
+  const params = useLocalSearchParams();
+  const venueId = single(params.venueId);
+  const requestedDate = single(params.date);
+  const requestedTime = single(params.time);
+  const requestedCourtId = single(params.courtId);
   const router = useRouter();
   const { user } = useAuth();
   const { top, bottom } = useSafeAreaInsets();
+  const today = dateKey(new Date());
+  const initialDate =
+    validDateKey(requestedDate) && requestedDate >= today
+      ? requestedDate
+      : today;
   const dates = useMemo(() => {
-    const start = new Date();
-    start.setHours(12, 0, 0, 0);
+    const start = new Date(`${initialDate}T12:00:00`);
     return Array.from({ length: 7 }, (_, index) => {
       const date = new Date(start);
       date.setDate(start.getDate() + index);
       return dateKey(date);
     });
-  }, []);
+  }, [initialDate]);
   const [venue, setVenue] = useState(null);
   const [venueImages, setVenueImages] = useState([]);
   const [courts, setCourts] = useState([]);
@@ -90,7 +111,7 @@ export default function VenueDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedCourtId, setSelectedCourtId] = useState("");
-  const [selectedDate, setSelectedDate] = useState(dates[0]);
+  const [selectedDate, setSelectedDate] = useState(initialDate);
   const [availability, setAvailability] = useState(null);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityError, setAvailabilityError] = useState("");
@@ -124,7 +145,11 @@ export default function VenueDetailScreen() {
         setVenue(venueData);
         setVenueImages(imageData);
         setCourts(activeCourts);
-        setSelectedCourtId((current) => current || activeCourts[0]?.id || "");
+        setSelectedCourtId(
+          activeCourts.some((court) => court.id === requestedCourtId)
+            ? requestedCourtId
+            : activeCourts[0]?.id || "",
+        );
         setOpeningHours(hoursData);
         setCourtImages(Object.fromEntries(imageEntries));
       })
@@ -138,7 +163,11 @@ export default function VenueDetailScreen() {
     return () => {
       active = false;
     };
-  }, [venueId]);
+  }, [requestedCourtId, venueId]);
+
+  useEffect(() => {
+    setSelectedDate(initialDate);
+  }, [initialDate]);
 
   useEffect(() => {
     if (!selectedCourtId || !selectedDate) {
@@ -383,6 +412,16 @@ export default function VenueDetailScreen() {
                 Elegí una cancha, una fecha y un turno libre.
               </Text>
 
+              {!!requestedTime && selectedDate === initialDate && (
+                <View className="mb-4 flex-row items-center rounded-xl border border-[#315C3B] bg-[#142019] px-3 py-2.5">
+                  <Ionicons name="locate-outline" size={17} color="#80D160" />
+                  <Text className="ml-2 flex-1 text-xs text-[#C5CBD1]">
+                    Búsqueda del mapa: {dateLabel(initialDate)} a las{" "}
+                    {requestedTime}
+                  </Text>
+                </View>
+              )}
+
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -436,35 +475,44 @@ export default function VenueDetailScreen() {
                   </Text>
                 ) : (
                   <View className="flex-row flex-wrap">
-                    {availability.slots.map((slot) => (
-                      <Pressable
-                        key={slot.startsAt}
-                        disabled={!slot.available || !!bookingSlot}
-                        onPress={() => reserve(slot)}
-                        className={`mb-2 mr-2 min-w-[88px] items-center rounded-xl border px-3 py-3 ${
-                          slot.available
-                            ? "border-[#315C3B] bg-[#142019]"
-                            : "border-[#252D31] bg-[#202428]"
-                        }`}
-                      >
-                        <Text
-                          className={`font-bold ${
-                            slot.available
-                              ? "text-[#80D160]"
-                              : "text-[#69727B] line-through"
+                    {availability.slots.map((slot) => {
+                      const requestedFromMap =
+                        selectedDate === initialDate &&
+                        requestedTime === slotTimeKey(slot.startsAt);
+                      return (
+                        <Pressable
+                          key={slot.startsAt}
+                          disabled={!slot.available || !!bookingSlot}
+                          onPress={() => reserve(slot)}
+                          className={`mb-2 mr-2 min-w-[88px] items-center rounded-xl border px-3 py-3 ${
+                            requestedFromMap && slot.available
+                              ? "border-[#80D160] bg-[#2C4930]"
+                              : slot.available
+                                ? "border-[#315C3B] bg-[#142019]"
+                                : "border-[#252D31] bg-[#202428]"
                           }`}
                         >
-                          {slotTime(slot.startsAt)}
-                        </Text>
-                        <Text className="mt-1 text-[10px] text-[#8B949E]">
-                          {bookingSlot === slot.startsAt
-                            ? "Reservando..."
-                            : slot.available
-                              ? "Disponible"
-                              : "Ocupado"}
-                        </Text>
-                      </Pressable>
-                    ))}
+                          <Text
+                            className={`font-bold ${
+                              slot.available
+                                ? "text-[#80D160]"
+                                : "text-[#69727B] line-through"
+                            }`}
+                          >
+                            {slotTime(slot.startsAt)}
+                          </Text>
+                          <Text className="mt-1 text-[10px] text-[#8B949E]">
+                            {bookingSlot === slot.startsAt
+                              ? "Reservando..."
+                              : requestedFromMap && slot.available
+                                ? "Buscado"
+                                : slot.available
+                                  ? "Disponible"
+                                  : "Ocupado"}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
                   </View>
                 )}
               </View>
