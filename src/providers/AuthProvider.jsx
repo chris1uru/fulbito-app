@@ -1,4 +1,10 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { authApi, setApiToken, setUnauthorizedHandler } from "../services/api";
 import { getToken, removeToken, saveToken } from "../services/session";
 
@@ -48,6 +54,12 @@ export function AuthProvider({ children }) {
     return updatedUser;
   }
 
+  const refreshUser = useCallback(async () => {
+    const updatedUser = await authApi.me();
+    setUser(updatedUser);
+    return updatedUser;
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -56,6 +68,7 @@ export function AuthProvider({ children }) {
         signIn: (v) => authenticate(authApi.login, v),
         signUp: (v) => authenticate(authApi.registerPlayer, v),
         updateProfile,
+        refreshUser,
         signOut,
       }}
     >

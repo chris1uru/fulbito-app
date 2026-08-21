@@ -1,16 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Pressable,
   ScrollView,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AppAlert as Alert } from "../../../components/common/AppAlert";
 import { useAuth } from "../../../providers/AuthProvider";
 import {
   courtsApi,
@@ -90,6 +91,8 @@ export default function VenueDetailScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { top, bottom } = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
+  const courtCarouselRef = useRef(null);
   const today = dateKey(new Date());
   const initialDate =
     validDateKey(requestedDate) && requestedDate >= today
@@ -116,6 +119,11 @@ export default function VenueDetailScreen() {
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityError, setAvailabilityError] = useState("");
   const [bookingSlot, setBookingSlot] = useState("");
+  const courtCardWidth = Math.max(
+    260,
+    screenWidth - (courts.length === 1 ? 40 : 64),
+  );
+  const courtSnapInterval = courtCardWidth + 12;
 
   useEffect(() => {
     if (!venueId) {
@@ -168,6 +176,21 @@ export default function VenueDetailScreen() {
   useEffect(() => {
     setSelectedDate(initialDate);
   }, [initialDate]);
+
+  useEffect(() => {
+    const initialCourtId = courts.some((court) => court.id === requestedCourtId)
+      ? requestedCourtId
+      : courts[0]?.id;
+    const selectedIndex = courts.findIndex(
+      (court) => court.id === initialCourtId,
+    );
+    if (selectedIndex < 0) return;
+
+    courtCarouselRef.current?.scrollTo({
+      x: selectedIndex * courtSnapInterval,
+      animated: false,
+    });
+  }, [courtSnapInterval, courts, requestedCourtId]);
 
   useEffect(() => {
     if (!selectedCourtId || !selectedDate) {
@@ -242,6 +265,18 @@ export default function VenueDetailScreen() {
         },
       ],
     );
+  }
+
+  function selectCourtAt(index, animated = true) {
+    const safeIndex = Math.max(0, Math.min(index, courts.length - 1));
+    const court = courts[safeIndex];
+    if (!court) return;
+
+    setSelectedCourtId(court.id);
+    courtCarouselRef.current?.scrollTo({
+      x: safeIndex * courtSnapInterval,
+      animated,
+    });
   }
 
   if (loading) {
@@ -391,15 +426,71 @@ export default function VenueDetailScreen() {
               </Text>
             </View>
           ) : (
-            courts.map((court) => (
-              <VenueCourtCard
-                key={court.id}
-                court={court}
-                imageUrl={courtImages[court.id]}
-                selected={court.id === selectedCourtId}
-                onPress={() => setSelectedCourtId(court.id)}
-              />
-            ))
+            <>
+              <ScrollView
+                ref={courtCarouselRef}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                decelerationRate="fast"
+                disableIntervalMomentum
+                snapToAlignment="start"
+                snapToInterval={courtSnapInterval}
+                scrollEventThrottle={16}
+                contentContainerStyle={{ paddingRight: 24 }}
+                onScroll={(event) => {
+                  const index = Math.round(
+                    event.nativeEvent.contentOffset.x / courtSnapInterval,
+                  );
+                  const visibleCourt = courts[index];
+                  if (visibleCourt && visibleCourt.id !== selectedCourtId) {
+                    setSelectedCourtId(visibleCourt.id);
+                  }
+                }}
+                onMomentumScrollEnd={(event) => {
+                  const index = Math.round(
+                    event.nativeEvent.contentOffset.x / courtSnapInterval,
+                  );
+                  selectCourtAt(index, false);
+                }}
+              >
+                {courts.map((court, index) => (
+                  <View
+                    key={court.id}
+                    style={{
+                      width: courtCardWidth,
+                      marginRight: index === courts.length - 1 ? 0 : 12,
+                    }}
+                  >
+                    <VenueCourtCard
+                      court={court}
+                      imageUrl={courtImages[court.id]}
+                      selected={court.id === selectedCourtId}
+                      onPress={() => selectCourtAt(index)}
+                    />
+                  </View>
+                ))}
+              </ScrollView>
+
+              {courts.length > 1 && (
+                <View className="mb-4 flex-row items-center self-center rounded-full border border-[#252D31] bg-[#0D1517] px-3 py-2">
+                  {courts.map((court, index) => (
+                    <Pressable
+                      key={court.id}
+                      onPress={() => selectCourtAt(index)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Ver ${court.name}`}
+                      className={`h-2 w-2 rounded-full ${
+                        index > 0 ? "ml-2" : ""
+                      } ${
+                        court.id === selectedCourtId
+                          ? "bg-[#80D160]"
+                          : "bg-[#3B4249]"
+                      }`}
+                    />
+                  ))}
+                </View>
+              )}
+            </>
           )}
 
           {courts.length > 0 && (

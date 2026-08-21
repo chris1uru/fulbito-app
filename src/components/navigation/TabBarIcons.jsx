@@ -8,6 +8,10 @@ export const CalendarIcon = (props) => (
   <FontAwesome name="calendar" size={24} color="white" {...props} />
 );
 
+export const BusinessIcon = (props) => (
+  <Ionicons name="business" size={24} color="white" {...props} />
+);
+
 export const MessageIcon = (props) => (
   <Feather name="message-square" size={24} color="white" {...props} />
 );

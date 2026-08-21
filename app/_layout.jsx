@@ -1,12 +1,15 @@
 import "../global.css";
 import { Stack } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
+import AppAlertProvider from "../src/components/common/AppAlert";
 import { AuthProvider, useAuth } from "../src/providers/AuthProvider";
 
 export default function Layout() {
   return (
     <AuthProvider>
-      <Navigator />
+      <AppAlertProvider>
+        <Navigator />
+      </AppAlertProvider>
     </AuthProvider>
   );
 }

@@ -23,17 +23,27 @@ const MAX_BAR_WIDTH = 320;
 export default function FloatingTabBar({ state, descriptors, navigation }) {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
+  const visibleRoutes = state.routes.filter(
+    (route) =>
+      StyleSheet.flatten(descriptors[route.key].options.tabBarItemStyle)
+        ?.display !== "none",
+  );
+  const focusedRoute = state.routes[state.index];
+  const visibleIndex = Math.max(
+    0,
+    visibleRoutes.findIndex((route) => route.key === focusedRoute.key),
+  );
   const barWidth = Math.min(screenWidth - 48, MAX_BAR_WIDTH);
-  const itemWidth = barWidth / state.routes.length;
-  const indicatorX = useSharedValue(state.index * itemWidth);
+  const itemWidth = barWidth / visibleRoutes.length;
+  const indicatorX = useSharedValue(visibleIndex * itemWidth);
 
   useEffect(() => {
-    indicatorX.value = withTiming(state.index * itemWidth, {
+    indicatorX.value = withTiming(visibleIndex * itemWidth, {
       duration: 280,
       easing: Easing.out(Easing.cubic),
       reduceMotion: ReduceMotion.System,
     });
-  }, [indicatorX, itemWidth, state.index]);
+  }, [indicatorX, itemWidth, visibleIndex]);
 
   const indicatorStyle = useAnimatedStyle(() => ({
     width: itemWidth - 12,
@@ -48,9 +58,9 @@ export default function FloatingTabBar({ state, descriptors, navigation }) {
       <View style={[styles.bar, { width: barWidth }]}>
         <Animated.View style={[styles.indicator, indicatorStyle]} />
 
-        {state.routes.map((route, index) => {
+        {visibleRoutes.map((route) => {
           const { options } = descriptors[route.key];
-          const isFocused = state.index === index;
+          const isFocused = focusedRoute.key === route.key;
           const color = isFocused ? ACTIVE_COLOR : INACTIVE_COLOR;
           const label =
             typeof options.tabBarLabel === "string"
@@ -118,8 +128,8 @@ const styles = StyleSheet.create({
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.16,
-    shadowRadius: 10,
-    elevation: 7,
+    shadowRadius: 22,
+    elevation: 1,
   },
   indicator: {
     position: "absolute",

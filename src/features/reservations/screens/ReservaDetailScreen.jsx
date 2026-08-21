@@ -3,13 +3,13 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   Text,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AppAlert as Alert } from "../../../components/common/AppAlert";
 import { useAuth } from "../../../providers/AuthProvider";
 import { reservationsApi } from "../../../services/api";
 
@@ -141,7 +141,7 @@ export default function ReservaDetailScreen() {
 
   if (error || !reservation) {
     return (
-      <SafeAreaView className="flex-1 bg-[#17191C]">
+      <SafeAreaView style={{ flex: 1, backgroundColor: "#17191C" }}>
         <View className="flex-1 items-center justify-center px-6">
           <Ionicons name="alert-circle-outline" size={42} color="#F08A93" />
           <Text className="mt-4 text-center text-xl font-semibold text-white">
@@ -235,7 +235,10 @@ export default function ReservaDetailScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-[#17191C]" edges={["top", "bottom"]}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: "#17191C" }}
+      edges={["top", "bottom"]}
+    >
       <View className="flex-row items-center px-5 pb-4 pt-3">
         <Pressable
           onPress={() => router.back()}

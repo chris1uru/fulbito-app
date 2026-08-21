@@ -1,5 +1,8 @@
 import { Redirect } from "expo-router";
+import { useAuth } from "../src/providers/AuthProvider";
 
 export default function Index() {
-  return <Redirect href="/maps" />;
+  const { user } = useAuth();
+
+  return <Redirect href={user?.role === "OWNER" ? "/reservas" : "/maps"} />;
 }

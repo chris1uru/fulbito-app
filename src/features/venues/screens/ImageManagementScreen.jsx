@@ -5,15 +5,14 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Pressable,
-  RefreshControl,
   ScrollView,
   Text,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AppAlert as Alert } from "../../../components/common/AppAlert";
 import { imagesApi } from "../../../services/api";
 import { uploadToCloudinary } from "../../../services/cloudinary";
 
@@ -52,36 +51,29 @@ export default function ImageManagementScreen() {
   const router = useRouter();
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
 
-  const load = useCallback(
-    async (refresh = false) => {
-      if (!targetId) {
-        setError("No se indicó qué complejo o cancha querés administrar.");
-        setLoading(false);
-        setRefreshing(false);
-        return;
-      }
-      if (refresh) setRefreshing(true);
-      else setLoading(true);
-      setError("");
-      try {
-        const values = isVenue
-          ? await imagesApi.venueList(targetId)
-          : await imagesApi.courtList(targetId);
-        setImages(values);
-      } catch (requestError) {
-        setError(requestError.message);
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [isVenue, targetId],
-  );
+  const load = useCallback(async () => {
+    if (!targetId) {
+      setError("No se indicó qué complejo o cancha querés administrar.");
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const values = isVenue
+        ? await imagesApi.venueList(targetId)
+        : await imagesApi.courtList(targetId);
+      setImages(values);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [isVenue, targetId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -221,17 +213,7 @@ export default function ImageManagementScreen() {
           </Pressable>
         </View>
       ) : (
-        <ScrollView
-          contentContainerClassName="px-5 pb-12"
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => load(true)}
-              tintColor="#80D160"
-              enabled={!uploading}
-            />
-          }
-        >
+        <ScrollView contentContainerClassName="px-5 pb-12">
           <View className="rounded-2xl border border-[#315C3B] bg-[#142019] p-4">
             <View className="flex-row items-center justify-between">
               <View className="mr-4 flex-1">

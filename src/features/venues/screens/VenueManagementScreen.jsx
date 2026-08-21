@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   Image,
   Pressable,
-  RefreshControl,
   ScrollView,
   Text,
   View,
@@ -93,34 +92,28 @@ function VenueCard({ venue, isAdmin, onPress }) {
   );
 }
 
-export default function VenueManagementScreen() {
+export default function VenueManagementScreen({ embeddedInTabs = false }) {
   const { user } = useAuth();
   const router = useRouter();
   const isAdmin = user.role === "ADMIN";
   const [venues, setVenues] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  const loadVenues = useCallback(
-    async (refresh = false) => {
-      if (refresh) setRefreshing(true);
-      else setLoading(true);
-      setError("");
-      try {
-        const data = isAdmin
-          ? await venuesApi.adminList()
-          : await venuesApi.mine();
-        setVenues(data);
-      } catch (requestError) {
-        setError(requestError.message);
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [isAdmin],
-  );
+  const loadVenues = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const data = isAdmin
+        ? await venuesApi.adminList()
+        : await venuesApi.mine();
+      setVenues(data);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [isAdmin]);
 
   useFocusEffect(
     useCallback(() => {
@@ -134,12 +127,14 @@ export default function VenueManagementScreen() {
       edges={["top"]}
     >
       <View className="flex-row items-center px-5 pb-4 pt-3">
-        <Pressable
-          onPress={() => router.back()}
-          className="mr-4 h-11 w-11 items-center justify-center rounded-xl border border-[#30363D] bg-[#202428]"
-        >
-          <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
-        </Pressable>
+        {!embeddedInTabs && (
+          <Pressable
+            onPress={() => router.back()}
+            className="mr-4 h-11 w-11 items-center justify-center rounded-xl border border-[#30363D] bg-[#202428]"
+          >
+            <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
+          </Pressable>
+        )}
         <View className="flex-1">
           <Text className="text-2xl font-bold text-white">
             {isAdmin ? "Administrar complejos" : "Mis complejos"}
@@ -190,13 +185,6 @@ export default function VenueManagementScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerClassName="px-5 pb-10"
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => loadVenues(true)}
-              tintColor="#80D160"
-            />
-          }
         >
           <Text className="mb-3 text-xs font-semibold uppercase tracking-widest text-[#8B949E]">
             {venues.length} {venues.length === 1 ? "complejo" : "complejos"}

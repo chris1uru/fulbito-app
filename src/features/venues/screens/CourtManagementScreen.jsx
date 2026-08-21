@@ -4,7 +4,6 @@ import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
-  RefreshControl,
   ScrollView,
   Text,
   View,
@@ -41,25 +40,19 @@ export default function CourtManagementScreen() {
   const router = useRouter();
   const [courts, setCourts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  const load = useCallback(
-    async (refresh = false) => {
-      if (refresh) setRefreshing(true);
-      else setLoading(true);
-      setError("");
-      try {
-        setCourts(await courtsApi.managedList(venueId));
-      } catch (requestError) {
-        setError(requestError.message);
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [venueId],
-  );
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      setCourts(await courtsApi.managedList(venueId));
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [venueId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -131,16 +124,7 @@ export default function CourtManagementScreen() {
           </Pressable>
         </View>
       ) : (
-        <ScrollView
-          contentContainerClassName="px-5 pb-10"
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => load(true)}
-              tintColor="#80D160"
-            />
-          }
-        >
+        <ScrollView contentContainerClassName="px-5 pb-10">
           <View className="mb-5 rounded-2xl border border-[#315C3B] bg-[#142019] p-4">
             <Text className="text-sm leading-5 text-[#B7D7AF]">
               Las canchas inactivas se conservan, pero no aparecen para los

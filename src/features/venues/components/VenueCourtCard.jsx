@@ -36,7 +36,7 @@ export default function VenueCourtCard({ court, imageUrl, selected, onPress }) {
           resizeMode="cover"
         />
       ) : (
-        <View className="h-28 items-center justify-center bg-[#18231F]">
+        <View className="h-36 items-center justify-center bg-[#18231F]">
           <Ionicons name="football-outline" size={34} color="#69727B" />
         </View>
       )}
@@ -44,21 +44,15 @@ export default function VenueCourtCard({ court, imageUrl, selected, onPress }) {
       <View className="p-4">
         <View className="flex-row items-start justify-between">
           <View className="mr-3 flex-1">
-            <Text className="text-lg font-bold text-white">{court.name}</Text>
-            <Text className="mt-1 text-sm text-[#A9B1B8]">
+            <Text numberOfLines={1} className="text-lg font-bold text-white">
+              {court.name}
+            </Text>
+            <Text numberOfLines={1} className="mt-1 text-sm text-[#A9B1B8]">
               {SURFACES[court.surface] ?? court.surface} ·{" "}
               {FORMATS[court.footballFormat] ?? court.footballFormat}
             </Text>
           </View>
           <View className="items-end">
-            {selected && (
-              <View className="mb-2 flex-row items-center rounded-full bg-[#2C4930] px-2.5 py-1">
-                <Ionicons name="checkmark" size={14} color="#80D160" />
-                <Text className="ml-1 text-xs font-semibold text-[#80D160]">
-                  Seleccionada
-                </Text>
-              </View>
-            )}
             <Text className="text-lg font-bold text-[#80D160]">
               {formatPrice(court.pricePerSlot, court.currency)}
             </Text>

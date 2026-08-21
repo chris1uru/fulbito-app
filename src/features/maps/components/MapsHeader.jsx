@@ -9,6 +9,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AppHeader from "../../../components/common/AppHeader";
 
 const TIME_OPTIONS = Array.from({ length: 24 * 4 }, (_, index) => {
@@ -66,16 +67,24 @@ function calendarDays(value) {
 }
 
 function BottomModal({ visible, title, children, onClose }) {
+  const { bottom } = useSafeAreaInsets();
+
   return (
     <Modal
       visible={visible}
       transparent
+      presentationStyle="overFullScreen"
+      statusBarTranslucent
+      navigationBarTranslucent
       animationType="fade"
       onRequestClose={onClose}
     >
       <View className="flex-1 justify-end bg-black/60">
         <Pressable className="flex-1" onPress={onClose} />
-        <View className="rounded-t-3xl border border-[#30363D] bg-[#17191C] px-5 pb-8 pt-5">
+        <View
+          className="rounded-t-3xl border border-[#30363D] bg-[#17191C] px-5 pt-5"
+          style={{ paddingBottom: Math.max(bottom, 24) }}
+        >
           <View className="mb-4 flex-row items-center justify-between">
             <Text className="text-xl font-bold text-white">{title}</Text>
             <Pressable

@@ -107,8 +107,10 @@ export default function PlayerReservationsView() {
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerClassName="px-4"
-          contentContainerStyle={{ paddingBottom: bottom + 88 }}
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingBottom: bottom + 88,
+          }}
         >
           {nextReservation && (
             <>

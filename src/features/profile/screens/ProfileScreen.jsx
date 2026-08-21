@@ -1,14 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import { AppAlert as Alert } from "../../../components/common/AppAlert";
 import { useAuth } from "../../../providers/AuthProvider";
 
 export default function ProfileScreen() {
-  const { user, signOut } = useAuth();
+  const { user, refreshUser, signOut } = useAuth();
   const { bottom } = useSafeAreaInsets();
   const router = useRouter();
   const canManageVenues = user.role === "OWNER" || user.role === "ADMIN";
@@ -17,6 +19,23 @@ export default function ProfileScreen() {
     OWNER: "Dueño de complejo",
     PLAYER: "Jugador",
   }[user.role];
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshUser().catch(() => {});
+    }, [refreshUser]),
+  );
+
+  function confirmSignOut() {
+    Alert.alert(
+      "Cerrar sesión",
+      "¿Seguro que querés cerrar tu sesión de Fulbito?",
+      [
+        { text: "Volver", style: "cancel" },
+        { text: "Cerrar sesión", style: "destructive", onPress: signOut },
+      ],
+    );
+  }
 
   return (
     <SafeAreaView
@@ -176,7 +195,7 @@ export default function ProfileScreen() {
 
         <TouchableOpacity
           className="mt-6 flex-row items-center justify-center rounded-xl border border-[#653B40] bg-[#2B2225] py-4"
-          onPress={signOut}
+          onPress={confirmSignOut}
         >
           <Ionicons name="log-out-outline" size={20} color="#F08A93" />
           <Text className="ml-2 font-semibold text-[#F08A93]">

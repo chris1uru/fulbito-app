@@ -1,6 +1,6 @@
 import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, Platform, Text, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { venuesApi } from "../../../services/api";
 import MapsHeader from "../components/MapsHeader";
@@ -209,26 +209,24 @@ export default function MapsScreen() {
         {visibleVenues.map((venue) => {
           const coordinate = coordinateOf(venue);
           const availability = availabilityByVenue[venue.id];
-          const availableCount = availability?.availableCourts?.length ?? 0;
-          const pinColor = availabilityError
-            ? "#D6A84B"
-            : availability?.available
-              ? "#80D160"
-              : "#69727B";
-          const description = availabilityLoading
-            ? "Consultando disponibilidad..."
-            : availabilityError
-              ? "No se pudo confirmar la disponibilidad"
+          const markerState =
+            availabilityLoading || availabilityError
+              ? "loading"
               : availability?.available
-                ? `${availableCount} ${availableCount === 1 ? "cancha disponible" : "canchas disponibles"} a las ${selection.time}`
-                : `Sin canchas disponibles a las ${selection.time}`;
-
+                ? "available"
+                : "unavailable";
+          const pinColor =
+            markerState === "loading"
+              ? "#D6A84B"
+              : markerState === "available"
+                ? "#80D160"
+                : Platform.OS === "android"
+                  ? "#E85D5D"
+                  : "#69727B";
           return (
             <Marker
-              key={venue.id}
+              key={`${venue.id}-${markerState}`}
               coordinate={coordinate}
-              title={venue.name}
-              description={description}
               onPress={() => setSelectedVenueId(venue.id)}
               pinColor={pinColor}
             />
