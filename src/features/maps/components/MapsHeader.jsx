@@ -12,11 +12,11 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AppHeader from "../../../components/common/AppHeader";
 
-const TIME_OPTIONS = Array.from({ length: 24 * 4 }, (_, index) => {
-  const hour = String(Math.floor(index / 4)).padStart(2, "0");
-  const minute = String((index % 4) * 15).padStart(2, "0");
-  return `${hour}:${minute}`;
-});
+const TIME_OPTIONS = [
+  ...Array.from({ length: 14 }, (_, index) => `${index + 10}:00`),
+  "00:00",
+  "01:00",
+];
 const WEEKDAYS = ["D", "L", "M", "M", "J", "V", "S"];
 
 function dateKey(date) {
@@ -116,7 +116,8 @@ function TimeDropdown({
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
+      animationType="none"
+      hardwareAccelerated
       onRequestClose={onClose}
     >
       <View className="flex-1">
@@ -139,6 +140,10 @@ function TimeDropdown({
             data={TIME_OPTIONS}
             keyExtractor={(item) => item}
             initialScrollIndex={selectedTimeIndex}
+            initialNumToRender={6}
+            maxToRenderPerBatch={6}
+            windowSize={3}
+            removeClippedSubviews
             getItemLayout={(_, index) => ({
               length: 48,
               offset: 48 * index,

@@ -30,6 +30,8 @@ function initialSelection() {
   const nextHour = new Date();
   nextHour.setMinutes(0, 0, 0);
   nextHour.setHours(nextHour.getHours() + 1);
+  const hour = nextHour.getHours();
+  if (hour > 1 && hour < 10) nextHour.setHours(10);
   return { date: dateKey(nextHour), time: timeKey(nextHour) };
 }
 
@@ -112,7 +114,7 @@ export default function MapsScreen() {
       setAvailabilityResponse(null);
       setAvailabilityLoading(true);
       venuesApi
-        .availability(selection.date, selection.time)
+        .availabilityHour(selection.date, selection.time)
         .then((data) => {
           if (active) setAvailabilityResponse(data);
         })
@@ -225,7 +227,7 @@ export default function MapsScreen() {
                   : "#69727B";
           return (
             <Marker
-              key={`${venue.id}-${markerState}`}
+              key={venue.id}
               coordinate={coordinate}
               onPress={() => setSelectedVenueId(venue.id)}
               pinColor={pinColor}

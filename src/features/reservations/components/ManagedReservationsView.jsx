@@ -23,9 +23,8 @@ export default function ManagedReservationsView({ isAdmin }) {
   const [venues, setVenues] = useState([]);
   const [courts, setCourts] = useState([]);
   const [selectedVenue, setSelectedVenue] = useState(null);
-  const [month, setMonth] = useState(
-    () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-  );
+  const [periodDate, setPeriodDate] = useState(() => new Date());
+  const [viewMode, setViewMode] = useState("DAY");
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(isAdmin);
   const [agendaLoading, setAgendaLoading] = useState(!isAdmin);
@@ -36,7 +35,6 @@ export default function ManagedReservationsView({ isAdmin }) {
   const [courtFilter, setCourtFilter] = useState("ALL");
   const [paymentFilter, setPaymentFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
-  const [sortBy, setSortBy] = useState("DATE");
 
   const loadVenues = useCallback(async () => {
     if (isAdmin) setLoading(true);
@@ -79,8 +77,22 @@ export default function ManagedReservationsView({ isAdmin }) {
   const loadAgenda = useCallback(async () => {
     if (isAdmin && !selectedVenue) return;
 
-    const from = new Date(month.getFullYear(), month.getMonth(), 1);
-    const to = new Date(month.getFullYear(), month.getMonth() + 1, 1);
+    const from =
+      viewMode === "DAY"
+        ? new Date(
+            periodDate.getFullYear(),
+            periodDate.getMonth(),
+            periodDate.getDate(),
+          )
+        : new Date(periodDate.getFullYear(), periodDate.getMonth(), 1);
+    const to =
+      viewMode === "DAY"
+        ? new Date(
+            periodDate.getFullYear(),
+            periodDate.getMonth(),
+            periodDate.getDate() + 1,
+          )
+        : new Date(periodDate.getFullYear(), periodDate.getMonth() + 1, 1);
     const requestId = ++agendaRequestId.current;
     setAgendaLoading(true);
     setAgendaError("");
@@ -122,7 +134,7 @@ export default function ManagedReservationsView({ isAdmin }) {
         setAgendaLoading(false);
       }
     }
-  }, [isAdmin, month, selectedVenue]);
+  }, [isAdmin, periodDate, selectedVenue, viewMode]);
 
   useFocusEffect(
     useCallback(() => {
@@ -130,11 +142,21 @@ export default function ManagedReservationsView({ isAdmin }) {
     }, [loadAgenda]),
   );
 
-  function changeMonth(offset) {
-    setMonth(
-      (current) =>
-        new Date(current.getFullYear(), current.getMonth() + offset, 1),
+  function changePeriod(offset) {
+    setPeriodDate((current) =>
+      viewMode === "DAY"
+        ? new Date(
+            current.getFullYear(),
+            current.getMonth(),
+            current.getDate() + offset,
+          )
+        : new Date(current.getFullYear(), current.getMonth() + offset, 1),
     );
+  }
+
+  function changeViewMode(mode) {
+    setViewMode(mode);
+    setPeriodDate(new Date());
   }
 
   function selectVenue(venue) {
@@ -219,7 +241,7 @@ export default function ManagedReservationsView({ isAdmin }) {
         ) : (
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: bottom + 88 }}
+            contentContainerStyle={{ paddingBottom: bottom + 156 }}
           >
             {isAdmin && (
               <Pressable
@@ -233,41 +255,50 @@ export default function ManagedReservationsView({ isAdmin }) {
               </Pressable>
             )}
 
-            <Pressable
-              onPress={() =>
-                router.push({
-                  pathname: "/manualReservation",
-                  params: selectedVenue?.id
-                    ? { venueId: selectedVenue.id }
-                    : undefined,
-                })
-              }
-              className="mx-4 mb-4 flex-row items-center justify-center rounded-xl bg-[#80D160] py-3.5"
-            >
-              <Ionicons name="add-circle-outline" size={20} color="#152012" />
-              <Text className="ml-2 font-semibold text-[#152012]">
-                Nueva reserva manual
-              </Text>
-            </Pressable>
+            <View className="mx-4 mb-3 flex-row rounded-xl bg-[#202428] p-1">
+              {[
+                ["DAY", "Día"],
+                ["MONTH", "Mes"],
+              ].map(([mode, label]) => (
+                <Pressable
+                  key={mode}
+                  onPress={() => changeViewMode(mode)}
+                  className={`flex-1 items-center rounded-lg py-2.5 ${
+                    viewMode === mode ? "bg-[#2C4930]" : ""
+                  }`}
+                >
+                  <Text
+                    className={`text-sm font-semibold ${
+                      viewMode === mode ? "text-[#80D160]" : "text-[#8B949E]"
+                    }`}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
 
             <View className="mx-4 mb-4 flex-row items-center justify-between rounded-xl border border-[#30363D] bg-[#202428] p-2">
               <Pressable
-                onPress={() => changeMonth(-1)}
+                onPress={() => changePeriod(-1)}
                 className="h-9 w-9 items-center justify-center rounded-lg bg-[#292D32]"
               >
                 <Ionicons name="chevron-back" size={18} color="#A9B1B8" />
               </Pressable>
               <View className="items-center">
-                <Text className="text-xs text-[#8B949E]">Período</Text>
+                <Text className="text-xs text-[#8B949E]">
+                  {viewMode === "DAY" ? "Agenda del día" : "Agenda mensual"}
+                </Text>
                 <Text className="mt-0.5 font-semibold capitalize text-white">
-                  {month.toLocaleDateString("es-UY", {
-                    month: "long",
-                    year: "numeric",
+                  {periodDate.toLocaleDateString("es-UY", {
+                    ...(viewMode === "DAY"
+                      ? { weekday: "short", day: "numeric", month: "long" }
+                      : { month: "long", year: "numeric" }),
                   })}
                 </Text>
               </View>
               <Pressable
-                onPress={() => changeMonth(1)}
+                onPress={() => changePeriod(1)}
                 className="h-9 w-9 items-center justify-center rounded-lg bg-[#292D32]"
               >
                 <Ionicons name="chevron-forward" size={18} color="#A9B1B8" />
@@ -289,8 +320,6 @@ export default function ManagedReservationsView({ isAdmin }) {
               onPaymentFilterChange={setPaymentFilter}
               statusFilter={statusFilter}
               onStatusFilterChange={setStatusFilter}
-              sortBy={sortBy}
-              onSortChange={setSortBy}
               loading={agendaLoading}
               error={agendaError}
               onRetry={loadAgenda}
@@ -302,6 +331,25 @@ export default function ManagedReservationsView({ isAdmin }) {
               }
             />
           </ScrollView>
+        )}
+
+        {!loading && !error && !choosingVenue && (
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: "/manualReservation",
+                params: selectedVenue?.id
+                  ? { venueId: selectedVenue.id }
+                  : undefined,
+              })
+            }
+            className="absolute right-6 z-10 h-14 w-14 items-center justify-center rounded-2xl border border-[#A4E88B] bg-[#80D160]"
+            style={{ bottom: bottom + 76 }}
+            accessibilityRole="button"
+            accessibilityLabel="Nueva reserva manual"
+          >
+            <Ionicons name="add" size={28} color="#152012" />
+          </Pressable>
         )}
       </View>
     </SafeAreaView>

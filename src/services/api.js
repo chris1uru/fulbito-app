@@ -78,6 +78,49 @@ export const venuesApi = {
     request(
       `/api/public/venues/availability?date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}`,
     ),
+  availabilityHour: async (date, time) => {
+    const hour = time.slice(0, 2);
+    const times = ["00", "15", "30", "45"].map((minute) => `${hour}:${minute}`);
+    const responses = await Promise.all(
+      times.map((slotTime) =>
+        request(
+          `/api/public/venues/availability?date=${encodeURIComponent(date)}&time=${encodeURIComponent(slotTime)}`,
+        ),
+      ),
+    );
+    const venues = new Map();
+
+    responses.forEach((response, responseIndex) => {
+      (response?.venues ?? []).forEach((venue) => {
+        const current = venues.get(venue.venueId) ?? {
+          ...venue,
+          available: false,
+          availableCourts: [],
+        };
+        const courts = new Map(
+          current.availableCourts.map((court) => [court.courtId, court]),
+        );
+
+        (venue.availableCourts ?? []).forEach((court) => {
+          if (!courts.has(court.courtId)) {
+            courts.set(court.courtId, {
+              ...court,
+              matchingTime: times[responseIndex],
+            });
+          }
+        });
+        current.availableCourts = [...courts.values()];
+        current.available = current.availableCourts.length > 0;
+        venues.set(venue.venueId, current);
+      });
+    });
+
+    return {
+      ...responses[0],
+      time,
+      venues: [...venues.values()],
+    };
+  },
   mine: () => request("/api/owner/venues"),
   update: (id, body) =>
     request(`/api/owner/venues/${id}`, { method: "PUT", body }),

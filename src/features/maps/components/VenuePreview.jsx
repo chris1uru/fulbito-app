@@ -78,7 +78,8 @@ export default function VenuePreview({
             {venue.name}
           </Text>
           <Text className="mt-1 text-xs capitalize text-[#A9B1B8]">
-            {dateLabel(selectedDate)} · {selectedTime}
+            {dateLabel(selectedDate)} · {selectedTime} a{" "}
+            {selectedTime.slice(0, 2)}:59
           </Text>
           <View
             className="mt-2 self-start rounded-full px-3 py-1.5"
@@ -106,7 +107,7 @@ export default function VenuePreview({
             </Text>
           ) : (
             <Text className="text-xs leading-5 text-[#8B949E]">
-              Ninguna cancha tiene un turno que comience a esa hora.
+              Ninguna cancha tiene un turno que comience en esa franja.
             </Text>
           )}
         </View>
@@ -118,7 +119,7 @@ export default function VenuePreview({
           params: {
             venueId: venue.id,
             date: selectedDate,
-            time: selectedTime,
+            time: firstAvailableCourt?.matchingTime ?? selectedTime,
             ...(firstAvailableCourt
               ? { courtId: firstAvailableCourt.courtId }
               : {}),

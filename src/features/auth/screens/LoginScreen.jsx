@@ -16,6 +16,7 @@ export default function LoginScreen() {
   const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleLogin() {
@@ -86,10 +87,24 @@ export default function LoginScreen() {
               className="h-full flex-1 px-3 text-white"
               placeholder="••••••••"
               placeholderTextColor="#69727B"
-              secureTextEntry
+              secureTextEntry={!isPasswordVisible}
               value={password}
               onChangeText={setPassword}
             />
+            <TouchableOpacity
+              accessibilityLabel={
+                isPasswordVisible ? "Ocultar contraseña" : "Mostrar contraseña"
+              }
+              accessibilityRole="button"
+              hitSlop={8}
+              onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+            >
+              <Ionicons
+                name={isPasswordVisible ? "eye-outline" : "eye-off-outline"}
+                size={21}
+                color="#8B949E"
+              />
+            </TouchableOpacity>
           </View>
 
           <TouchableOpacity
