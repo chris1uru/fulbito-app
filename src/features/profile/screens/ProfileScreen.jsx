@@ -13,7 +13,7 @@ export default function ProfileScreen() {
   const { user, refreshUser, signOut } = useAuth();
   const { bottom } = useSafeAreaInsets();
   const router = useRouter();
-  const canManageVenues = user.role === "OWNER" || user.role === "ADMIN";
+  const canManageVenues = user.role === "ADMIN";
   const roleLabel = {
     ADMIN: "Administrador",
     OWNER: "Dueño de complejo",

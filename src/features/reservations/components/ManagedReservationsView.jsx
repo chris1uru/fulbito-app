@@ -20,14 +20,17 @@ export default function ManagedReservationsView({ isAdmin }) {
   const { bottom } = useSafeAreaInsets();
   const router = useRouter();
   const agendaRequestId = useRef(0);
+  const venuesRequestId = useRef(0);
   const [venues, setVenues] = useState([]);
   const [courts, setCourts] = useState([]);
   const [selectedVenue, setSelectedVenue] = useState(null);
   const [periodDate, setPeriodDate] = useState(() => new Date());
   const [viewMode, setViewMode] = useState("DAY");
   const [reservations, setReservations] = useState([]);
-  const [loading, setLoading] = useState(isAdmin);
-  const [agendaLoading, setAgendaLoading] = useState(!isAdmin);
+  const [reservationCounts, setReservationCounts] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [countsLoading, setCountsLoading] = useState(false);
+  const [agendaLoading, setAgendaLoading] = useState(false);
   const [error, setError] = useState("");
   const [agendaError, setAgendaError] = useState("");
   const [query, setQuery] = useState("");
@@ -37,45 +40,89 @@ export default function ManagedReservationsView({ isAdmin }) {
   const [statusFilter, setStatusFilter] = useState("ALL");
 
   const loadVenues = useCallback(async () => {
-    if (isAdmin) setLoading(true);
+    const requestId = ++venuesRequestId.current;
+    setLoading(true);
+    setCountsLoading(false);
     setError("");
 
     try {
       const data = isAdmin
         ? await venuesApi.adminList()
         : await venuesApi.mine();
+      if (requestId !== venuesRequestId.current) return;
+
       setVenues(data);
-      if (isAdmin) return;
+      setSelectedVenue((current) => {
+        const refreshedVenue = data.find((venue) => venue.id === current?.id);
+        if (refreshedVenue) return refreshedVenue;
+        return !isAdmin && data.length === 1 ? data[0] : null;
+      });
 
-      setVenueFilter(data[0]?.id ?? "ALL");
-      setCourtFilter("ALL");
-
-      const courtsByVenue = await Promise.all(
-        data.map(async (venue) => {
-          const venueCourts = await courtsApi.managedList(venue.id);
-          return venueCourts.map((court) => ({
-            ...court,
-            venueId: venue.id,
-            venueName: venue.name,
-          }));
-        }),
-      );
-      setCourts(courtsByVenue.flat());
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
+      if (!isAdmin && data.length === 1) {
+        setVenueFilter(data[0].id);
+      }
       setLoading(false);
+
+      if (isAdmin || data.length > 1) {
+        const today = new Date();
+        const from = new Date(
+          today.getFullYear(),
+          today.getMonth(),
+          today.getDate(),
+        );
+        const to = new Date(
+          today.getFullYear(),
+          today.getMonth(),
+          today.getDate() + 1,
+        );
+        setCountsLoading(true);
+        const results = await Promise.allSettled(
+          data.map((venue) =>
+            reservationsApi.ownerAgenda(
+              from.toISOString(),
+              to.toISOString(),
+              venue.id,
+            ),
+          ),
+        );
+        if (requestId !== venuesRequestId.current) return;
+
+        setReservationCounts(
+          Object.fromEntries(
+            data.map((venue, index) => [
+              venue.id,
+              results[index].status === "fulfilled"
+                ? results[index].value.length
+                : null,
+            ]),
+          ),
+        );
+      } else {
+        setReservationCounts({});
+      }
+    } catch (requestError) {
+      if (requestId === venuesRequestId.current) {
+        setError(requestError.message);
+      }
+    } finally {
+      if (requestId === venuesRequestId.current) {
+        setLoading(false);
+        setCountsLoading(false);
+      }
     }
   }, [isAdmin]);
 
   useFocusEffect(
     useCallback(() => {
       loadVenues();
+      return () => {
+        venuesRequestId.current += 1;
+      };
     }, [loadVenues]),
   );
 
   const loadAgenda = useCallback(async () => {
-    if (isAdmin && !selectedVenue) return;
+    if (!selectedVenue) return;
 
     const from =
       viewMode === "DAY"
@@ -134,7 +181,7 @@ export default function ManagedReservationsView({ isAdmin }) {
         setAgendaLoading(false);
       }
     }
-  }, [isAdmin, periodDate, selectedVenue, viewMode]);
+  }, [periodDate, selectedVenue, viewMode]);
 
   useFocusEffect(
     useCallback(() => {
@@ -162,6 +209,7 @@ export default function ManagedReservationsView({ isAdmin }) {
   function selectVenue(venue) {
     setAgendaLoading(true);
     setSelectedVenue(venue);
+    setVenueFilter(venue.id);
     setReservations([]);
     setQuery("");
     setCourtFilter("ALL");
@@ -177,12 +225,8 @@ export default function ManagedReservationsView({ isAdmin }) {
     setCourtFilter("ALL");
   }
 
-  function changeVenueFilter(venueId) {
-    setVenueFilter(venueId);
-    setCourtFilter("ALL");
-  }
-
-  const choosingVenue = isAdmin && !selectedVenue;
+  const choosingVenue = !selectedVenue;
+  const canChangeVenue = isAdmin || venues.length > 1;
 
   return (
     <SafeAreaView
@@ -200,11 +244,11 @@ export default function ManagedReservationsView({ isAdmin }) {
           <View className="flex-row items-center justify-between">
             <View className="flex-1 pr-3">
               <Text className="text-3xl font-semibold text-white">
-                {choosingVenue ? "Reservas" : "Agenda"}
+                {choosingVenue && isAdmin ? "Reservas" : "Agenda"}
               </Text>
               <Text numberOfLines={1} className="mt-1 text-sm text-[#A9B1B8]">
                 {choosingVenue
-                  ? "Elegí el complejo que querés consultar"
+                  ? "¿De qué complejo querés ver la agenda?"
                   : selectedVenue?.name || "Reservas de tus complejos"}
               </Text>
             </View>
@@ -225,7 +269,14 @@ export default function ManagedReservationsView({ isAdmin }) {
         ) : error ? (
           <View className="mx-4 rounded-2xl border border-[#653B40] bg-[#2B2225] p-4">
             <Text className="text-center text-sm text-[#F08A93]">{error}</Text>
-            {isAdmin && selectedVenue && (
+            {!selectedVenue ? (
+              <Pressable
+                onPress={loadVenues}
+                className="mt-4 items-center rounded-xl bg-[#3A292D] py-3"
+              >
+                <Text className="font-semibold text-[#F08A93]">Reintentar</Text>
+              </Pressable>
+            ) : canChangeVenue ? (
               <Pressable
                 onPress={clearSelectedVenue}
                 className="mt-4 items-center rounded-xl bg-[#3A292D] py-3"
@@ -234,16 +285,21 @@ export default function ManagedReservationsView({ isAdmin }) {
                   Cambiar complejo
                 </Text>
               </Pressable>
-            )}
+            ) : null}
           </View>
         ) : choosingVenue ? (
-          <AdminVenueSelector venues={venues} onSelect={selectVenue} />
+          <AdminVenueSelector
+            venues={venues}
+            reservationCounts={reservationCounts}
+            countsLoading={countsLoading}
+            onSelect={selectVenue}
+          />
         ) : (
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: bottom + 156 }}
           >
-            {isAdmin && (
+            {canChangeVenue && (
               <Pressable
                 onPress={clearSelectedVenue}
                 className="mx-4 mb-3 flex-row items-center self-start rounded-lg bg-[#292D32] px-3 py-2"
@@ -310,8 +366,7 @@ export default function ManagedReservationsView({ isAdmin }) {
               venues={venues}
               courts={courts}
               venueFilter={selectedVenue?.id ?? venueFilter}
-              onVenueFilterChange={changeVenueFilter}
-              showVenueFilter={!isAdmin && venues.length > 1}
+              showVenueFilter={false}
               query={query}
               onQueryChange={setQuery}
               courtFilter={courtFilter}

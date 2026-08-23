@@ -2,7 +2,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export default function AdminVenueSelector({ venues, onSelect }) {
+export default function AdminVenueSelector({
+  venues,
+  reservationCounts,
+  countsLoading,
+  onSelect,
+}) {
   const { bottom } = useSafeAreaInsets();
 
   return (
@@ -12,7 +17,7 @@ export default function AdminVenueSelector({ venues, onSelect }) {
       contentContainerStyle={{ paddingBottom: bottom + 88 }}
     >
       <Text className="mb-3 text-xs font-semibold uppercase tracking-widest text-[#8B949E]">
-        Seleccioná un complejo
+        Complejos
       </Text>
       {venues.length === 0 ? (
         <View className="items-center rounded-3xl border border-dashed border-[#3B4249] bg-[#202428] px-6 py-12">
@@ -46,9 +51,19 @@ export default function AdminVenueSelector({ venues, onSelect }) {
               <Text numberOfLines={1} className="mt-1 text-xs text-[#8B949E]">
                 {venue.location?.city ?? "Ubicación pendiente"}
               </Text>
-              <Text className="mt-2 text-xs font-semibold text-[#80D160]">
-                Ver reservas
-              </Text>
+              {countsLoading ? (
+                <View className="mt-2 h-4 w-28 rounded bg-[#30363D]" />
+              ) : (
+                <Text className="mt-2 text-xs font-semibold text-[#80D160]">
+                  {reservationCounts[venue.id] == null
+                    ? "Reservas de hoy no disponibles"
+                    : `${reservationCounts[venue.id]} ${
+                        reservationCounts[venue.id] === 1
+                          ? "reserva"
+                          : "reservas"
+                      } hoy`}
+                </Text>
+              )}
             </View>
             <View className="items-center justify-center pr-3">
               <Ionicons name="chevron-forward" size={20} color="#69727B" />
