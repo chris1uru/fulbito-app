@@ -10,10 +10,10 @@ import { AppAlert as Alert } from "../../../components/common/AppAlert";
 import { useAuth } from "../../../providers/AuthProvider";
 
 export default function ProfileScreen() {
-  const { user, refreshUser, signOut } = useAuth();
+  const { user, refreshUser, signOut, deleteAccount } = useAuth();
   const { bottom } = useSafeAreaInsets();
   const router = useRouter();
-  const canManageVenues = user.role === "ADMIN";
+  const canManageVenues = user.role === "ADMIN" || user.role === "OWNER";
   const roleLabel = {
     ADMIN: "Administrador",
     OWNER: "Dueño de complejo",
@@ -33,6 +33,26 @@ export default function ProfileScreen() {
       [
         { text: "Volver", style: "cancel" },
         { text: "Cerrar sesión", style: "destructive", onPress: signOut },
+      ],
+    );
+  }
+
+  function confirmDeleteAccount() {
+    Alert.alert(
+      "Eliminar cuenta",
+      user.role === "OWNER"
+        ? "Se anonimizarán tus datos personales. Si todavía tenés complejos asignados, primero deberás transferirlos."
+        : "Se anonimizarán tus datos personales y se cerrará tu sesión. Esta acción no se puede deshacer.",
+      [
+        { text: "Volver", style: "cancel" },
+        {
+          text: "Eliminar cuenta",
+          style: "destructive",
+          onPress: () =>
+            deleteAccount().catch((error) =>
+              Alert.alert("No se pudo eliminar", error.message),
+            ),
+        },
       ],
     );
   }
@@ -130,6 +150,18 @@ export default function ProfileScreen() {
             Editar mis datos
           </Text>
         </TouchableOpacity>
+
+        {user.role !== "ADMIN" && (
+          <TouchableOpacity
+            className="mt-3 flex-row items-center justify-center rounded-xl py-3"
+            onPress={confirmDeleteAccount}
+          >
+            <Ionicons name="trash-outline" size={18} color="#8B949E" />
+            <Text className="ml-2 text-sm font-medium text-[#8B949E]">
+              Eliminar mi cuenta
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {canManageVenues && (
           <>

@@ -5,15 +5,15 @@ const KEY = "fulbito_access_token";
 
 export const getToken = () =>
   Platform.OS === "web"
-    ? Promise.resolve(globalThis.localStorage?.getItem(KEY) ?? null)
+    ? Promise.resolve(globalThis.sessionStorage?.getItem(KEY) ?? null)
     : SecureStore.getItemAsync(KEY);
 
 export const saveToken = (token) =>
   Platform.OS === "web"
-    ? Promise.resolve(globalThis.localStorage?.setItem(KEY, token))
+    ? Promise.resolve(globalThis.sessionStorage?.setItem(KEY, token))
     : SecureStore.setItemAsync(KEY, token);
 
 export const removeToken = () =>
   Platform.OS === "web"
-    ? Promise.resolve(globalThis.localStorage?.removeItem(KEY))
+    ? Promise.resolve(globalThis.sessionStorage?.removeItem(KEY))
     : SecureStore.deleteItemAsync(KEY);

@@ -14,6 +14,10 @@ module.exports = defineConfig([
   {
     rules: {
       "prettier/prettier": ["error", { endOfLine: "auto" }],
+      // Estas reglas experimentales de React 19 marcan flujos validos de React Native
+      // (carga de datos al cambiar una seleccion y comparaciones con la hora actual).
+      "react-hooks/purity": "off",
+      "react-hooks/set-state-in-effect": "off",
     },
   },
 ]);

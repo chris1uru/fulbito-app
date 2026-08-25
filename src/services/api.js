@@ -1,6 +1,10 @@
-const API_URL = (
-  process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8080"
-).replace(/\/$/, "");
+const configuredApiUrl = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "");
+const API_URL = configuredApiUrl ?? (__DEV__ ? "http://localhost:8080" : "");
+if (!__DEV__ && !API_URL.startsWith("https://")) {
+  throw new Error(
+    "La compilación de producción requiere EXPO_PUBLIC_API_URL con HTTPS.",
+  );
+}
 const REQUEST_TIMEOUT_MS = 15_000;
 
 let token = null;
@@ -69,58 +73,19 @@ export const authApi = {
     request("/api/auth/register-player", { method: "POST", body }),
   me: () => request("/api/users/me"),
   updateMe: (body) => request("/api/users/me", { method: "PUT", body }),
+  logout: () => request("/api/auth/logout", { method: "POST" }),
+  deleteMe: () => request("/api/users/me", { method: "DELETE" }),
+  changePassword: (body) =>
+    request("/api/users/me/password", { method: "PUT", body }),
 };
 
 export const venuesApi = {
   publicList: () => request("/api/public/venues"),
   publicOne: (id) => request(`/api/public/venues/${id}`),
-  availability: (date, time) =>
+  availabilityHour: (date, time) =>
     request(
-      `/api/public/venues/availability?date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}`,
+      `/api/public/venues/availability?date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}&windowMinutes=60`,
     ),
-  availabilityHour: async (date, time) => {
-    const hour = time.slice(0, 2);
-    const times = ["00", "15", "30", "45"].map((minute) => `${hour}:${minute}`);
-    const responses = await Promise.all(
-      times.map((slotTime) =>
-        request(
-          `/api/public/venues/availability?date=${encodeURIComponent(date)}&time=${encodeURIComponent(slotTime)}`,
-        ),
-      ),
-    );
-    const venues = new Map();
-
-    responses.forEach((response, responseIndex) => {
-      (response?.venues ?? []).forEach((venue) => {
-        const current = venues.get(venue.venueId) ?? {
-          ...venue,
-          available: false,
-          availableCourts: [],
-        };
-        const courts = new Map(
-          current.availableCourts.map((court) => [court.courtId, court]),
-        );
-
-        (venue.availableCourts ?? []).forEach((court) => {
-          if (!courts.has(court.courtId)) {
-            courts.set(court.courtId, {
-              ...court,
-              matchingTime: times[responseIndex],
-            });
-          }
-        });
-        current.availableCourts = [...courts.values()];
-        current.available = current.availableCourts.length > 0;
-        venues.set(venue.venueId, current);
-      });
-    });
-
-    return {
-      ...responses[0],
-      time,
-      venues: [...venues.values()],
-    };
-  },
   mine: () => request("/api/owner/venues"),
   update: (id, body) =>
     request(`/api/owner/venues/${id}`, { method: "PUT", body }),
@@ -129,11 +94,6 @@ export const venuesApi = {
   adminCreate: (body) => request("/api/admin/venues", { method: "POST", body }),
   adminUpdate: (id, body) =>
     request(`/api/admin/venues/${id}`, { method: "PUT", body }),
-  adminAssignOwner: (id, ownerId) =>
-    request(`/api/admin/venues/${id}/owner`, {
-      method: "PATCH",
-      body: { ownerId },
-    }),
   adminSetStatus: (id, status) =>
     request(`/api/admin/venues/${id}/status`, {
       method: "PATCH",
@@ -157,7 +117,6 @@ export const adminUsersApi = {
 export const courtsApi = {
   list: (venueId) => request(`/api/public/venues/${venueId}/courts`),
   managedList: (venueId) => request(`/api/owner/venues/${venueId}/courts`),
-  publicOne: (id) => request(`/api/public/courts/${id}`),
   availability: (id, date) =>
     request(
       `/api/public/courts/${id}/availability?date=${encodeURIComponent(date)}`,

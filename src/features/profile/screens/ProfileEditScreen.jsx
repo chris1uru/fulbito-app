@@ -27,7 +27,7 @@ function Field({ label, value, onChangeText, editable = true, ...props }) {
 }
 
 export default function ProfileEditScreen() {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, changePassword } = useAuth();
   const router = useRouter();
   const [form, setForm] = useState({
     firstName: user.firstName ?? "",
@@ -35,6 +35,12 @@ export default function ProfileEditScreen() {
     phone: user.phone ?? "",
   });
   const [saving, setSaving] = useState(false);
+  const [passwords, setPasswords] = useState({
+    current: "",
+    next: "",
+    repeat: "",
+  });
+  const [changingPassword, setChangingPassword] = useState(false);
 
   function update(name, value) {
     setForm((current) => ({ ...current, [name]: value }));
@@ -69,6 +75,32 @@ export default function ProfileEditScreen() {
       Alert.alert("No se pudo guardar", requestError.message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function savePassword() {
+    if (passwords.next.length < 10) {
+      Alert.alert("Contraseña muy corta", "Usá al menos 10 caracteres.");
+      return;
+    }
+    if (passwords.next !== passwords.repeat) {
+      Alert.alert("No coinciden", "Repetí exactamente la nueva contraseña.");
+      return;
+    }
+    try {
+      setChangingPassword(true);
+      await changePassword({
+        currentPassword: passwords.current,
+        newPassword: passwords.next,
+      });
+      Alert.alert(
+        "Contraseña actualizada",
+        "Por seguridad, iniciá sesión nuevamente.",
+      );
+    } catch (requestError) {
+      Alert.alert("No se pudo cambiar", requestError.message);
+    } finally {
+      setChangingPassword(false);
     }
   }
 
@@ -129,8 +161,7 @@ export default function ProfileEditScreen() {
             <View className="flex-1">
               <Text className="font-semibold text-white">Datos protegidos</Text>
               <Text className="mt-1 text-xs leading-5 text-[#8B949E]">
-                Estos cambios tendrán verificación de identidad y se habilitarán
-                en una próxima etapa.
+                El correo y la cédula no se modifican desde la app.
               </Text>
             </View>
           </View>
@@ -143,16 +174,41 @@ export default function ProfileEditScreen() {
             <Field label="Cédula" value={user.nationalId} editable={false} />
           )}
           <Field
-            label="Contraseña"
-            value="••••••••••••"
-            editable={false}
+            label="Contraseña actual"
+            value={passwords.current}
+            onChangeText={(value) =>
+              setPasswords((current) => ({ ...current, current: value }))
+            }
             secureTextEntry
+            autoCapitalize="none"
           />
-          <View className="-mt-1 self-start rounded-lg bg-[#2C4930] px-3 py-1.5">
-            <Text className="text-xs font-semibold text-[#80D160]">
-              Cambio de contraseña: próximamente
+          <Field
+            label="Nueva contraseña"
+            value={passwords.next}
+            onChangeText={(value) =>
+              setPasswords((current) => ({ ...current, next: value }))
+            }
+            secureTextEntry
+            autoCapitalize="none"
+          />
+          <Field
+            label="Repetir nueva contraseña"
+            value={passwords.repeat}
+            onChangeText={(value) =>
+              setPasswords((current) => ({ ...current, repeat: value }))
+            }
+            secureTextEntry
+            autoCapitalize="none"
+          />
+          <Pressable
+            disabled={changingPassword || !passwords.current || !passwords.next}
+            onPress={savePassword}
+            className={`items-center rounded-xl border border-[#80D160] py-3 ${changingPassword ? "opacity-60" : ""}`}
+          >
+            <Text className="font-semibold text-[#80D160]">
+              {changingPassword ? "Actualizando..." : "Cambiar contraseña"}
             </Text>
-          </View>
+          </Pressable>
         </View>
 
         <View className="mb-5 rounded-2xl border border-[#3B4249] bg-[#202428] p-4">

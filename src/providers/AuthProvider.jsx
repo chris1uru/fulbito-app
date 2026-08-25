@@ -43,6 +43,26 @@ export function AuthProvider({ children }) {
   }
 
   async function signOut() {
+    try {
+      await authApi.logout();
+    } catch {
+      // El cierre local siempre debe completarse, incluso sin conexión.
+    } finally {
+      setApiToken(null);
+      setUser(null);
+      await removeToken();
+    }
+  }
+
+  async function deleteAccount() {
+    await authApi.deleteMe();
+    setApiToken(null);
+    setUser(null);
+    await removeToken();
+  }
+
+  async function changePassword(values) {
+    await authApi.changePassword(values);
     setApiToken(null);
     setUser(null);
     await removeToken();
@@ -70,6 +90,8 @@ export function AuthProvider({ children }) {
         updateProfile,
         refreshUser,
         signOut,
+        deleteAccount,
+        changePassword,
       }}
     >
       {children}

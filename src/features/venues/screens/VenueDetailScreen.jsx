@@ -140,14 +140,12 @@ export default function VenueDetailScreen() {
       courtsApi.list(venueId),
       scheduleApi.hours(venueId),
     ])
-      .then(async ([venueData, imageData, courtData, hoursData]) => {
+      .then(([venueData, imageData, courtData, hoursData]) => {
         const activeCourts = courtData.filter((court) => court.active);
-        const imageEntries = await Promise.all(
-          activeCourts.map(async (court) => {
-            const images = await imagesApi.courtList(court.id).catch(() => []);
-            return [court.id, images[0]?.url];
-          }),
-        );
+        const imageEntries = activeCourts.map((court) => [
+          court.id,
+          court.coverImageUrl,
+        ]);
 
         if (!active) return;
         setVenue(venueData);

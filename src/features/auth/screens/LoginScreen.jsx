@@ -119,23 +119,6 @@ export default function LoginScreen() {
               <Ionicons name="arrow-forward" size={18} color="#152012" />
             )}
           </TouchableOpacity>
-
-          <View className="my-6 flex-row items-center">
-            <View className="h-px flex-1 bg-[#30363D]" />
-            <Text className="px-3 text-xs text-[#8B949E]">O continuá con</Text>
-            <View className="h-px flex-1 bg-[#30363D]" />
-          </View>
-
-          <View className="flex-row gap-3">
-            <TouchableOpacity className="flex-1 flex-row items-center justify-center rounded-xl border border-[#3B4249] bg-[#292D32] py-3.5">
-              <Ionicons name="logo-google" size={19} color="#FFFFFF" />
-              <Text className="ml-2 font-medium text-white">Google</Text>
-            </TouchableOpacity>
-            <TouchableOpacity className="flex-1 flex-row items-center justify-center rounded-xl border border-[#3B4249] bg-[#292D32] py-3.5">
-              <Ionicons name="logo-apple" size={21} color="#FFFFFF" />
-              <Text className="ml-2 font-medium text-white">Apple</Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
         <Link href="/register" asChild>

@@ -36,11 +36,11 @@ export default function RegisterScreen() {
       !form.firstName.trim() ||
       !form.lastName.trim() ||
       !form.email.trim() ||
-      form.password.length < 8
+      form.password.length < 10
     ) {
       Alert.alert(
         "Revisa los datos",
-        "Completa nombre, apellido, correo y una contraseña de al menos 8 caracteres.",
+        "Completa nombre, apellido, correo y una contraseña de al menos 10 caracteres.",
       );
       return;
     }
@@ -116,7 +116,7 @@ export default function RegisterScreen() {
               </View>
               {name === "password" && (
                 <Text className="mt-2 text-xs text-[#8B949E]">
-                  Mínimo 8 caracteres
+                  Mínimo 10 caracteres
                 </Text>
               )}
             </View>

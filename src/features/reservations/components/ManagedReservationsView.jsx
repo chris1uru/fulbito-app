@@ -76,27 +76,19 @@ export default function ManagedReservationsView({ isAdmin }) {
           today.getDate() + 1,
         );
         setCountsLoading(true);
-        const results = await Promise.allSettled(
-          data.map((venue) =>
-            reservationsApi.ownerAgenda(
-              from.toISOString(),
-              to.toISOString(),
-              venue.id,
-            ),
-          ),
+        const todayAgenda = await reservationsApi.ownerAgenda(
+          from.toISOString(),
+          to.toISOString(),
         );
         if (requestId !== venuesRequestId.current) return;
 
-        setReservationCounts(
-          Object.fromEntries(
-            data.map((venue, index) => [
-              venue.id,
-              results[index].status === "fulfilled"
-                ? results[index].value.length
-                : null,
-            ]),
-          ),
-        );
+        const counts = Object.fromEntries(data.map((venue) => [venue.id, 0]));
+        todayAgenda.forEach((reservation) => {
+          if (Object.hasOwn(counts, reservation.venueId)) {
+            counts[reservation.venueId] += 1;
+          }
+        });
+        setReservationCounts(counts);
       } else {
         setReservationCounts({});
       }

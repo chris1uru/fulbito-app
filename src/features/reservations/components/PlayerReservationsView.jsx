@@ -3,7 +3,7 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { imagesApi, reservationsApi } from "../../../services/api";
+import { reservationsApi } from "../../../services/api";
 import ReservaCard from "./ReservaCard";
 
 export default function PlayerReservationsView() {
@@ -11,7 +11,6 @@ export default function PlayerReservationsView() {
   const [reservations, setReservations] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [courtImages, setCourtImages] = useState({});
 
   const now = Date.now();
   const sortedReservations = [...reservations].sort(
@@ -38,22 +37,9 @@ export default function PlayerReservationsView() {
 
       reservationsApi
         .mine()
-        .then(async (data) => {
-          const courtIds = [
-            ...new Set(data.map((reservation) => reservation.courtId)),
-          ];
-          const results = await Promise.all(
-            courtIds.map(async (courtId) => {
-              const images = await imagesApi.courtList(courtId).catch(() => []);
-              return [courtId, images[0]?.url];
-            }),
-          );
-          return { data, images: Object.fromEntries(results) };
-        })
-        .then(({ data, images }) => {
+        .then((data) => {
           if (!active) return;
           setReservations(data);
-          setCourtImages(images);
         })
         .catch((requestError) => {
           if (active) setError(requestError.message);
@@ -119,7 +105,7 @@ export default function PlayerReservationsView() {
               </Text>
               <ReservaCard
                 reservation={nextReservation}
-                imageUrl={courtImages[nextReservation.courtId]}
+                imageUrl={nextReservation.courtImageUrl}
               />
             </>
           )}
@@ -137,7 +123,7 @@ export default function PlayerReservationsView() {
             <ReservaCard
               key={reservation.id}
               reservation={reservation}
-              imageUrl={courtImages[reservation.courtId]}
+              imageUrl={reservation.courtImageUrl}
               variant="compact"
             />
           ))}
@@ -151,7 +137,7 @@ export default function PlayerReservationsView() {
             <ReservaCard
               key={reservation.id}
               reservation={reservation}
-              imageUrl={courtImages[reservation.courtId]}
+              imageUrl={reservation.courtImageUrl}
               variant="compact"
               isPast
             />

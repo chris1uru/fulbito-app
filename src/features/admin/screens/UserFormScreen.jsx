@@ -59,8 +59,8 @@ export default function UserFormScreen() {
       Alert.alert("Cédula inválida", "Ingresá una cédula de 7 u 8 dígitos.");
       return;
     }
-    if (form.password.length < 8) {
-      Alert.alert("Contraseña inválida", "Debe tener al menos 8 caracteres.");
+    if (form.password.length < 10) {
+      Alert.alert("Contraseña inválida", "Debe tener al menos 10 caracteres.");
       return;
     }
 
@@ -166,7 +166,7 @@ export default function UserFormScreen() {
             value={form.password}
             onChangeText={(value) => update("password", value)}
             secureTextEntry
-            placeholder="Mínimo 8 caracteres"
+            placeholder="Mínimo 10 caracteres"
           />
         </View>
 
