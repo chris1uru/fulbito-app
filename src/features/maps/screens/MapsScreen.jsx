@@ -3,6 +3,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Platform, Text, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { venuesApi } from "../../../services/api";
+import {
+  addUruguayDays,
+  nextUruguayHourSelection,
+  uruguayDateKey,
+} from "../../../utils/uruguayDateTime";
 import MapsHeader from "../components/MapsHeader";
 import VenuePreview from "../components/VenuePreview";
 
@@ -14,31 +19,15 @@ const INITIAL_REGION = {
 };
 
 function dateKey(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function timeKey(date) {
-  return `${String(date.getHours()).padStart(2, "0")}:${String(
-    date.getMinutes(),
-  ).padStart(2, "0")}`;
+  return uruguayDateKey(date);
 }
 
 function initialSelection() {
-  const nextHour = new Date();
-  nextHour.setMinutes(0, 0, 0);
-  nextHour.setHours(nextHour.getHours() + 1);
-  const hour = nextHour.getHours();
-  if (hour > 1 && hour < 10) nextHour.setHours(10);
-  return { date: dateKey(nextHour), time: timeKey(nextHour) };
+  return nextUruguayHourSelection();
 }
 
 function addDays(value, amount) {
-  const date = new Date(`${value}T12:00:00`);
-  date.setDate(date.getDate() + amount);
-  return dateKey(date);
+  return addUruguayDays(value, amount);
 }
 
 function normalize(value) {

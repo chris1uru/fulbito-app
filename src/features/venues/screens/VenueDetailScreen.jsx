@@ -20,6 +20,12 @@ import {
   scheduleApi,
   venuesApi,
 } from "../../../services/api";
+import {
+  addUruguayDays,
+  formatUruguayCalendarDate,
+  formatUruguayTime,
+  uruguayDateKey,
+} from "../../../utils/uruguayDateTime";
 import VenueCourtCard from "../components/VenueCourtCard";
 
 const DAYS = [
@@ -51,10 +57,7 @@ function shortTime(time) {
 }
 
 function dateKey(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return uruguayDateKey(date);
 }
 
 function validDateKey(value) {
@@ -64,7 +67,7 @@ function validDateKey(value) {
 }
 
 function dateLabel(value) {
-  return new Date(`${value}T12:00:00`).toLocaleDateString("es-UY", {
+  return formatUruguayCalendarDate(value, {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -72,10 +75,7 @@ function dateLabel(value) {
 }
 
 function slotTime(value) {
-  return new Date(value).toLocaleTimeString("es-UY", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatUruguayTime(value);
 }
 
 function slotTimeKey(value) {
@@ -99,12 +99,9 @@ export default function VenueDetailScreen() {
       ? requestedDate
       : today;
   const dates = useMemo(() => {
-    const start = new Date(`${initialDate}T12:00:00`);
-    return Array.from({ length: 7 }, (_, index) => {
-      const date = new Date(start);
-      date.setDate(start.getDate() + index);
-      return dateKey(date);
-    });
+    return Array.from({ length: 7 }, (_, index) =>
+      addUruguayDays(initialDate, index),
+    );
   }, [initialDate]);
   const [venue, setVenue] = useState(null);
   const [venueImages, setVenueImages] = useState([]);

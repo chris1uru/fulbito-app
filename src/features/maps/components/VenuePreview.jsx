@@ -2,9 +2,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
 import { Image, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { formatUruguayCalendarDate } from "../../../utils/uruguayDateTime";
 
 function dateLabel(value) {
-  return new Date(`${value}T12:00:00`).toLocaleDateString("es-UY", {
+  return formatUruguayCalendarDate(value, {
     weekday: "short",
     day: "numeric",
     month: "short",

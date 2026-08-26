@@ -4,24 +4,56 @@ import { useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppAlert as Alert } from "../../../components/common/AppAlert";
+import CountryPhoneField, {
+  phoneValidationMessage,
+} from "../../../components/common/CountryPhoneField";
 import { useAuth } from "../../../providers/AuthProvider";
 
-function Field({ label, value, onChangeText, editable = true, ...props }) {
+function Field({
+  label,
+  value,
+  onChangeText,
+  editable = true,
+  secureTextEntry = false,
+  ...props
+}) {
+  const [passwordVisible, setPasswordVisible] = useState(false);
   return (
     <View className="mb-4">
       <Text className="mb-2 text-sm font-medium text-[#C5CBD1]">{label}</Text>
-      <TextInput
-        className={`h-13 rounded-xl border px-4 ${
+      <View
+        className={`h-13 flex-row items-center rounded-xl border px-4 ${
           editable
             ? "border-[#30363D] bg-[#17191C] text-white"
             : "border-[#292D32] bg-[#25292D] text-[#69727B]"
         }`}
-        value={value}
-        onChangeText={onChangeText}
-        editable={editable}
-        placeholderTextColor="#69727B"
-        {...props}
-      />
+      >
+        <TextInput
+          className="h-full flex-1 text-white"
+          value={value}
+          onChangeText={onChangeText}
+          editable={editable}
+          placeholderTextColor="#69727B"
+          secureTextEntry={secureTextEntry && !passwordVisible}
+          {...props}
+        />
+        {secureTextEntry && (
+          <Pressable
+            onPress={() => setPasswordVisible((current) => !current)}
+            className="ml-3 p-1"
+            accessibilityRole="button"
+            accessibilityLabel={
+              passwordVisible ? "Ocultar contraseña" : "Mostrar contraseña"
+            }
+          >
+            <Ionicons
+              name={passwordVisible ? "eye-off-outline" : "eye-outline"}
+              size={20}
+              color="#A9B1B8"
+            />
+          </Pressable>
+        )}
+      </View>
     </View>
   );
 }
@@ -51,11 +83,9 @@ export default function ProfileEditScreen() {
       Alert.alert("Faltan datos", "Completá tu nombre y apellido.");
       return;
     }
-    if (form.phone.trim() && !/^\+[1-9][0-9]{7,14}$/.test(form.phone.trim())) {
-      Alert.alert(
-        "Teléfono inválido",
-        "Ingresalo con código de país, por ejemplo +59899123456.",
-      );
+    const phoneError = phoneValidationMessage(form.phone.trim());
+    if (phoneError) {
+      Alert.alert("Teléfono inválido", phoneError);
       return;
     }
 
@@ -144,12 +174,9 @@ export default function ProfileEditScreen() {
             onChangeText={(value) => update("lastName", value)}
             autoCapitalize="words"
           />
-          <Field
-            label="Teléfono"
+          <CountryPhoneField
             value={form.phone}
-            onChangeText={(value) => update("phone", value)}
-            keyboardType="phone-pad"
-            placeholder="+59899123456"
+            onChangeText={(phone) => update("phone", phone)}
           />
         </View>
 

@@ -13,16 +13,19 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AppAlert as Alert } from "../../../components/common/AppAlert";
 import { useAuth } from "../../../providers/AuthProvider";
 import { courtsApi, reservationsApi, venuesApi } from "../../../services/api";
+import {
+  addUruguayDays,
+  formatUruguayCalendarDate,
+  formatUruguayTime,
+  uruguayDateKey,
+} from "../../../utils/uruguayDateTime";
 
 function single(value) {
   return Array.isArray(value) ? value[0] : value;
 }
 
 function dateKey(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return uruguayDateKey(date);
 }
 
 function validDateKey(value) {
@@ -32,7 +35,7 @@ function validDateKey(value) {
 }
 
 function dateLabel(value) {
-  return new Date(`${value}T12:00:00`).toLocaleDateString("es-UY", {
+  return formatUruguayCalendarDate(value, {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -40,10 +43,7 @@ function dateLabel(value) {
 }
 
 function slotTime(value) {
-  return new Date(value).toLocaleTimeString("es-UY", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatUruguayTime(value);
 }
 
 function formatAmount(amount, currency) {
@@ -77,12 +77,8 @@ export default function ManualReservationScreen() {
   const today = dateKey(new Date());
   const quickDates = useMemo(
     () =>
-      Array.from({ length: 14 }, (_, index) => {
-        const date = new Date();
-        date.setDate(date.getDate() + index);
-        return dateKey(date);
-      }),
-    [],
+      Array.from({ length: 14 }, (_, index) => addUruguayDays(today, index)),
+    [today],
   );
 
   const [venues, setVenues] = useState([]);
@@ -246,7 +242,10 @@ export default function ManualReservationScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#17191C]">
+      <View
+        className="flex-1 items-center justify-center"
+        style={{ backgroundColor: "#17191C" }}
+      >
         <ActivityIndicator color="#80D160" size="large" />
         <Text className="mt-3 text-[#A9B1B8]">Cargando complejos...</Text>
       </View>
@@ -254,7 +253,11 @@ export default function ManualReservationScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-[#17191C]" edges={["top", "bottom"]}>
+    <SafeAreaView
+      className="flex-1"
+      style={{ backgroundColor: "#17191C" }}
+      edges={["top", "bottom"]}
+    >
       <View className="flex-row items-center px-5 pb-4 pt-3">
         <Pressable
           onPress={() => router.back()}
@@ -279,6 +282,7 @@ export default function ManualReservationScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           contentContainerClassName="px-5 pb-10"
+          style={{ backgroundColor: "#17191C" }}
         >
           <View className="mb-5 rounded-3xl border border-[#30363D] bg-[#202428] p-4">
             <Text className="text-lg font-semibold text-white">Complejo</Text>

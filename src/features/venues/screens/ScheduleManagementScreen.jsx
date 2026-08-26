@@ -12,6 +12,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppAlert as Alert } from "../../../components/common/AppAlert";
 import { courtsApi, scheduleApi } from "../../../services/api";
+import {
+  addUruguayDays,
+  formatUruguayCalendarDate,
+  formatUruguayDateTime,
+  uruguayDateKey,
+  uruguayDayRange,
+} from "../../../utils/uruguayDateTime";
 
 const DAYS = [
   "Lunes",
@@ -27,19 +34,8 @@ function single(value) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function dateKey(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function parseDate(value) {
-  return new Date(`${value}T12:00:00`);
-}
-
 function dateLabel(value) {
-  return parseDate(value).toLocaleDateString("es-UY", {
+  return formatUruguayCalendarDate(value, {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -47,7 +43,7 @@ function dateLabel(value) {
 }
 
 function dateTimeLabel(value) {
-  return new Date(value).toLocaleString("es-UY", {
+  return formatUruguayDateTime(value, {
     weekday: "short",
     day: "2-digit",
     month: "short",
@@ -75,13 +71,10 @@ export default function ScheduleManagementScreen() {
   const venueName = single(params.venueName) ?? "Complejo";
   const router = useRouter();
   const dates = useMemo(() => {
-    const start = new Date();
-    start.setHours(12, 0, 0, 0);
-    return Array.from({ length: 14 }, (_, index) => {
-      const date = new Date(start);
-      date.setDate(start.getDate() + index);
-      return dateKey(date);
-    });
+    const today = uruguayDateKey();
+    return Array.from({ length: 14 }, (_, index) =>
+      addUruguayDays(today, index),
+    );
   }, []);
 
   const [courts, setCourts] = useState([]);
@@ -124,17 +117,16 @@ export default function ScheduleManagementScreen() {
       setBlocks([]);
       return;
     }
-    const fromDate = new Date();
-    fromDate.setHours(0, 0, 0, 0);
-    const toDate = new Date(fromDate);
-    toDate.setDate(toDate.getDate() + 60);
+    const today = uruguayDateKey();
+    const fromDate = uruguayDayRange(today).from;
+    const toDate = uruguayDayRange(addUruguayDays(today, 60)).from;
     setLoadingBlocks(true);
     try {
       setBlocks(
         await scheduleApi.blocks(
           selectedCourtId,
-          fromDate.toISOString(),
-          toDate.toISOString(),
+          fromDate,
+          toDate,
         ),
       );
     } catch (requestError) {
