@@ -5,6 +5,7 @@ import {
   BusinessIcon,
   CalendarIcon,
   MapsIcon,
+  RivalIcon,
 } from "../../src/components/navigation/TabBarIcons";
 import FloatingTabBar from "../../src/components/navigation/FloatingTabBar";
 import { useAuth } from "../../src/providers/AuthProvider";
@@ -12,6 +13,7 @@ import { useAuth } from "../../src/providers/AuthProvider";
 export default function TabsLayout() {
   const { user } = useAuth();
   const isOwner = user?.role === "OWNER";
+  const isPlayer = user?.role === "PLAYER";
 
   return (
     <Tabs
@@ -43,6 +45,17 @@ export default function TabsLayout() {
                 : "Mis Reservas",
           tabBarIcon: ({ color, size }) => (
             <CalendarIcon color={color} size={size} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="buscar-rival"
+        options={{
+          title: "Buscar rival",
+          href: isPlayer ? undefined : null,
+          tabBarIcon: ({ color, size }) => (
+            <RivalIcon color={color} size={size} />
           ),
         }}
       />

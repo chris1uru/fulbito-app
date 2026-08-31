@@ -151,18 +151,6 @@ export default function ProfileScreen() {
           </Text>
         </TouchableOpacity>
 
-        {user.role !== "ADMIN" && (
-          <TouchableOpacity
-            className="mt-3 flex-row items-center justify-center rounded-xl py-3"
-            onPress={confirmDeleteAccount}
-          >
-            <Ionicons name="trash-outline" size={18} color="#8B949E" />
-            <Text className="ml-2 text-sm font-medium text-[#8B949E]">
-              Eliminar mi cuenta
-            </Text>
-          </TouchableOpacity>
-        )}
-
         {canManageVenues && (
           <>
             <Text className="mb-3 mt-6 text-xs font-semibold uppercase tracking-widest text-[#8B949E]">
@@ -234,6 +222,17 @@ export default function ProfileScreen() {
             Cerrar sesión
           </Text>
         </TouchableOpacity>
+        {user.role !== "ADMIN" && (
+          <TouchableOpacity
+            className="mt-3 flex-row items-center justify-center rounded-xl py-3"
+            onPress={confirmDeleteAccount}
+          >
+            <Ionicons name="trash-outline" size={18} color="#8B949E" />
+            <Text className="ml-2 text-sm font-medium text-[#8B949E]">
+              Eliminar mi cuenta
+            </Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

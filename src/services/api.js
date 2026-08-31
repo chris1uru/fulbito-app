@@ -161,6 +161,25 @@ export const reservationsApi = {
     request(`/api/reservations/${id}/cancel-player`, { method: "PATCH" }),
 };
 
+export const matchRequestsApi = {
+  discover: ({ style, format, from, to } = {}) => {
+    const params = new URLSearchParams();
+    if (style && style !== "ALL") params.set("style", style);
+    if (format && format !== "ALL") params.set("format", format);
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+    const query = params.toString();
+    return request(`/api/match-requests${query ? `?${query}` : ""}`);
+  },
+  mine: () => request("/api/match-requests/mine"),
+  create: (body) => request("/api/match-requests", { method: "POST", body }),
+  close: (id) =>
+    request(`/api/match-requests/${id}/close`, { method: "PATCH" }),
+  expressInterest: (id) =>
+    request(`/api/match-requests/${id}/interests`, { method: "POST" }),
+  interests: (id) => request(`/api/match-requests/${id}/interests`),
+};
+
 export const departmentsApi = { list: () => request("/api/departments") };
 
 export const imagesApi = {

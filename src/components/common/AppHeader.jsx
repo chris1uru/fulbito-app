@@ -11,7 +11,7 @@ export default function AppHeader({ children }) {
     >
       <StatusBar style="light" backgroundColor="#17191C" translucent={false} />
       <View className="mb-4 items-center">
-        <Text className="text-2xl font-semibold tracking-tight text-white">
+        <Text className="text-3xl font-semibold tracking-tight text-white">
           Ful<Text className="text-[#80D160]">bito</Text>
         </Text>
       </View>

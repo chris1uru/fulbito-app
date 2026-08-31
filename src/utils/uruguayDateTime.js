@@ -89,3 +89,7 @@ export function uruguayDayRange(dateKey) {
     ).toISOString(),
   };
 }
+
+export function uruguayDateTimeIso(dateKey, time) {
+  return new Date(`${dateKey}T${time}:00${URUGUAY_OFFSET}`).toISOString();
+}

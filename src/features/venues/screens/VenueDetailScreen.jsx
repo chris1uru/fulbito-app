@@ -1,9 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  FlatList,
   Image,
+  Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -82,6 +86,124 @@ function slotTimeKey(value) {
   return value?.split("T")[1]?.slice(0, 5) ?? "";
 }
 
+function callablePhone(value) {
+  return String(value ?? "").replace(/[^+\d]/g, "");
+}
+
+function whatsappPhone(value) {
+  return String(value ?? "").replace(/\D/g, "");
+}
+
+function SectionHeading({ icon, title, subtitle, trailing }) {
+  return (
+    <View className="mb-4 flex-row items-center">
+      <View className="mr-3 h-11 w-11 items-center justify-center rounded-xl bg-[#2C4930]">
+        <Ionicons name={icon} size={22} color="#80D160" />
+      </View>
+      <View className="flex-1">
+        <Text className="text-xl font-bold text-white">{title}</Text>
+        {!!subtitle && (
+          <Text className="mt-0.5 text-sm text-[#8B949E]">{subtitle}</Text>
+        )}
+      </View>
+      {trailing}
+    </View>
+  );
+}
+
+function VenueGallery({ visible, images, initialIndex, onClose }) {
+  const { top, bottom } = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const [activeIndex, setActiveIndex] = useState(initialIndex);
+
+  useEffect(() => {
+    if (visible) setActiveIndex(initialIndex);
+  }, [initialIndex, visible]);
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="fade"
+      presentationStyle="overFullScreen"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <View className="flex-1 bg-black">
+        <FlatList
+          key={`${visible}-${initialIndex}`}
+          data={images}
+          horizontal
+          pagingEnabled
+          initialScrollIndex={initialIndex}
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(item) => item}
+          getItemLayout={(_, index) => ({
+            length: width,
+            offset: width * index,
+            index,
+          })}
+          onMomentumScrollEnd={(event) => {
+            setActiveIndex(
+              Math.round(event.nativeEvent.contentOffset.x / width),
+            );
+          }}
+          renderItem={({ item }) => (
+            <View
+              className="items-center justify-center"
+              style={{ width, height }}
+            >
+              <Image
+                source={{ uri: item }}
+                resizeMode="contain"
+                style={{ width, height: height - top - bottom - 80 }}
+              />
+            </View>
+          )}
+        />
+
+        <View
+          className="absolute left-4 right-4 flex-row items-center justify-between"
+          style={{ top: top + 10 }}
+        >
+          <Pressable
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel="Cerrar galería"
+            className="h-11 w-11 items-center justify-center rounded-xl border border-white/10"
+            style={{ backgroundColor: "rgba(23, 25, 28, 0.88)" }}
+          >
+            <Ionicons name="close" size={25} color="#FFFFFF" />
+          </Pressable>
+          <View
+            className="rounded-full px-3 py-2"
+            style={{ backgroundColor: "rgba(23, 25, 28, 0.88)" }}
+          >
+            <Text className="font-semibold text-white">
+              {activeIndex + 1} / {images.length}
+            </Text>
+          </View>
+        </View>
+
+        {images.length > 1 && (
+          <View
+            className="absolute left-0 right-0 flex-row items-center justify-center"
+            style={{ bottom: bottom + 22 }}
+          >
+            {images.map((image, index) => (
+              <View
+                key={image}
+                className={`h-2 rounded-full ${index > 0 ? "ml-2" : ""} ${
+                  index === activeIndex ? "w-6 bg-[#80D160]" : "w-2 bg-white/40"
+                }`}
+              />
+            ))}
+          </View>
+        )}
+      </View>
+    </Modal>
+  );
+}
+
 export default function VenueDetailScreen() {
   const params = useLocalSearchParams();
   const venueId = single(params.venueId);
@@ -116,6 +238,11 @@ export default function VenueDetailScreen() {
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityError, setAvailabilityError] = useState("");
   const [bookingSlot, setBookingSlot] = useState("");
+  const [galleryVisible, setGalleryVisible] = useState(false);
+  const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
+  const [activeGalleryImages, setActiveGalleryImages] = useState([]);
+  const [courtGalleryImages, setCourtGalleryImages] = useState({});
+  const [courtGalleryLoadingId, setCourtGalleryLoadingId] = useState("");
   const courtCardWidth = Math.max(
     260,
     screenWidth - (courts.length === 1 ? 40 : 64),
@@ -274,9 +401,121 @@ export default function VenueDetailScreen() {
     });
   }
 
+  async function openContact(url, label) {
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert(
+        `No se pudo abrir ${label}`,
+        "Revisá que el dispositivo tenga una aplicación compatible.",
+      );
+    }
+  }
+
+  function callVenue() {
+    const phone = callablePhone(venue?.phone);
+    if (phone) openContact(`tel:${phone}`, "la llamada");
+  }
+
+  function messageVenue() {
+    const phone = whatsappPhone(venue?.whatsappPhone);
+    if (phone) openContact(`https://wa.me/${phone}`, "WhatsApp");
+  }
+
+  async function openCourtGallery(court) {
+    let images = courtGalleryImages[court.id];
+    if (!images) {
+      setCourtGalleryLoadingId(court.id);
+      try {
+        const imageData = await imagesApi.courtList(court.id);
+        images = [
+          ...new Set(
+            [
+              court.coverImageUrl,
+              ...imageData.map((image) => image.url),
+            ].filter(Boolean),
+          ),
+        ];
+        setCourtGalleryImages((current) => ({
+          ...current,
+          [court.id]: images,
+        }));
+      } catch (requestError) {
+        Alert.alert("No se pudieron cargar las fotos", requestError.message);
+        return;
+      } finally {
+        setCourtGalleryLoadingId("");
+      }
+    }
+
+    if (!images.length) {
+      Alert.alert(
+        "Sin fotos",
+        "El complejo todavía no publicó imágenes de esta cancha.",
+      );
+      return;
+    }
+    setActiveGalleryImages(images);
+    setGalleryInitialIndex(0);
+    setGalleryVisible(true);
+  }
+
+  function showDirections() {
+    const location = venue?.location;
+    if (!location) {
+      Alert.alert(
+        "Ubicación no disponible",
+        "El complejo todavía no informó su ubicación.",
+      );
+      return;
+    }
+
+    const latitude = Number(location.latitude);
+    const longitude = Number(location.longitude);
+    const hasCoordinates =
+      Number.isFinite(latitude) && Number.isFinite(longitude);
+    const destination = hasCoordinates
+      ? `${latitude},${longitude}`
+      : buildAddress(location);
+    const encodedDestination = encodeURIComponent(destination);
+    const encodedName = encodeURIComponent(venue.name);
+    const systemMapsUrl =
+      Platform.OS === "ios"
+        ? `https://maps.apple.com/?daddr=${encodedDestination}&dirflg=d`
+        : Platform.OS === "android"
+          ? `geo:0,0?q=${encodedDestination}(${encodedName})`
+          : `https://www.google.com/maps/dir/?api=1&destination=${encodedDestination}`;
+
+    Alert.alert("Cómo llegar", buildAddress(location), [
+      {
+        text: "Google Maps",
+        onPress: () =>
+          openContact(
+            `https://www.google.com/maps/dir/?api=1&destination=${encodedDestination}`,
+            "Google Maps",
+          ),
+      },
+      {
+        text: "Waze",
+        onPress: () =>
+          openContact(
+            hasCoordinates
+              ? `https://waze.com/ul?ll=${latitude},${longitude}&navigate=yes`
+              : `https://waze.com/ul?q=${encodedDestination}&navigate=yes`,
+            "Waze",
+          ),
+      },
+      {
+        text: Platform.OS === "ios" ? "Mapas" : "App de mapas",
+        onPress: () => openContact(systemMapsUrl, "la aplicación de mapas"),
+      },
+      { text: "Cancelar", style: "cancel" },
+    ]);
+  }
+
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#080B0D]">
+      <View className="flex-1 items-center justify-center bg-[#17191C]">
         <ActivityIndicator color="#80D160" size="large" />
         <Text className="mt-4 text-[#A9B1B8]">Cargando complejo...</Text>
       </View>
@@ -285,9 +524,9 @@ export default function VenueDetailScreen() {
 
   if (error || !venue) {
     return (
-      <View className="flex-1 items-center justify-center bg-[#080B0D] px-6">
-        <View className="h-16 w-16 items-center justify-center rounded-full bg-[#231719]">
-          <Ionicons name="alert-circle-outline" size={32} color="#F87171" />
+      <View className="flex-1 items-center justify-center bg-[#17191C] px-6">
+        <View className="h-16 w-16 items-center justify-center rounded-2xl bg-[#3A292D]">
+          <Ionicons name="alert-circle-outline" size={32} color="#F08A93" />
         </View>
         <Text className="mt-5 text-center text-xl font-semibold text-white">
           No pudimos cargar el complejo
@@ -307,14 +546,29 @@ export default function VenueDetailScreen() {
     venueImages.find((image) => image.cover)?.url ??
     venue.coverImageUrl ??
     venueImages[0]?.url;
+  const venueGalleryImages = [
+    ...new Set(
+      [heroImage, ...venueImages.map((image) => image.url)].filter(Boolean),
+    ),
+  ];
 
   return (
-    <View className="flex-1 bg-[#080B0D]">
+    <View className="flex-1 bg-[#17191C]">
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: bottom + 28 }}
       >
-        <View className="relative h-72 bg-[#18231F]">
+        <Pressable
+          disabled={!heroImage}
+          onPress={() => {
+            setActiveGalleryImages(venueGalleryImages);
+            setGalleryInitialIndex(0);
+            setGalleryVisible(true);
+          }}
+          accessibilityRole={heroImage ? "button" : undefined}
+          accessibilityLabel={heroImage ? "Ver fotos del complejo" : undefined}
+          className="relative h-64 bg-[#292D32]"
+        >
           {heroImage ? (
             <Image
               source={{ uri: heroImage }}
@@ -329,93 +583,124 @@ export default function VenueDetailScreen() {
               </Text>
             </View>
           )}
-          <View className="absolute bottom-0 left-0 right-0 h-24 bg-black/40" />
-          {venueImages.length > 1 && (
-            <View className="absolute bottom-4 right-5 flex-row items-center rounded-full bg-black/70 px-3 py-1.5">
+          <View className="absolute bottom-0 left-0 right-0 h-32 bg-black/40" />
+          {venueGalleryImages.length > 0 && (
+            <View
+              className="absolute bottom-10 right-4 flex-row items-center rounded-full px-3 py-1.5"
+              style={{ backgroundColor: "rgba(23, 25, 28, 0.88)" }}
+            >
               <Ionicons name="images-outline" size={15} color="#FFFFFF" />
               <Text className="ml-1.5 text-xs font-medium text-white">
-                {venueImages.length} fotos
+                {venueGalleryImages.length}{" "}
+                {venueGalleryImages.length === 1 ? "foto" : "fotos"} · Ver
               </Text>
             </View>
           )}
-        </View>
+        </Pressable>
 
-        <View className="px-5 pt-5">
-          <Ionicons
-            name="arrow-forward"
-            size={18}
-            color="#152012"
-            style={{ marginLeft: 8 }}
-          />
-          <View className="flex-row items-start justify-between">
-            <View className="mr-4 flex-1">
-              <Text className="text-[30px] font-bold tracking-tight text-white">
-                {venue.name}
-              </Text>
-              <View className="mt-2 flex-row items-start">
-                <Ionicons name="location-outline" size={18} color="#80D160" />
-                <Text className="ml-2 flex-1 leading-5 text-[#A9B1B8]">
-                  {buildAddress(venue.location)}
+        <View className="px-4" style={{ marginTop: -28 }}>
+          <View className="rounded-3xl border border-[#30363D] bg-[#202428] p-5">
+            <View className="flex-row items-start justify-between">
+              <View className="mr-4 flex-1">
+                <Text className="text-[30px] font-bold tracking-tight text-white">
+                  {venue.name}
+                </Text>
+                <Pressable
+                  onPress={showDirections}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Cómo llegar a ${venue.name}`}
+                  className="mt-2 flex-row items-center rounded-xl bg-[#292D32] px-3 py-3"
+                >
+                  <Ionicons name="location-outline" size={18} color="#80D160" />
+                  <Text className="ml-2 flex-1 leading-5 text-[#A9B1B8]">
+                    {buildAddress(venue.location)}
+                  </Text>
+                  <View className="ml-2 h-8 w-8 items-center justify-center rounded-lg bg-[#2C4930]">
+                    <Ionicons
+                      name="navigate-outline"
+                      size={17}
+                      color="#80D160"
+                    />
+                  </View>
+                </Pressable>
+              </View>
+              <View className="flex-row items-center rounded-full border border-[#315C3B] bg-[#142019] px-3 py-2">
+                <View className="mr-2 h-2 w-2 rounded-full bg-[#80D160]" />
+                <Text className="text-xs font-semibold text-[#80D160]">
+                  {venue.status === "ACTIVE" ? "Activo" : venue.status}
                 </Text>
               </View>
             </View>
-            <View className="flex-row items-center rounded-full border border-[#315C3B] bg-[#142019] px-3 py-2">
-              <View className="mr-2 h-2 w-2 rounded-full bg-[#80D160]" />
-              <Text className="text-xs font-semibold text-[#80D160]">
-                {venue.status === "ACTIVE" ? "Activo" : venue.status}
+
+            {!!venue.description && (
+              <Text className="mt-5 text-[15px] leading-6 text-[#C5CBD1]">
+                {venue.description}
               </Text>
-            </View>
+            )}
+
+            {(venue.phone || venue.whatsappPhone) && (
+              <View className="mt-5 flex-row gap-3">
+                {!!venue.phone && (
+                  <Pressable
+                    onPress={callVenue}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Llamar a ${venue.name}`}
+                    className="min-h-12 flex-1 flex-row items-center justify-center rounded-xl border border-[#30363D] bg-[#292D32] px-3"
+                  >
+                    <Ionicons name="call-outline" size={19} color="#80D160" />
+                    <View className="ml-2 flex-shrink">
+                      <Text className="font-semibold text-white">Llamar</Text>
+                      <Text
+                        numberOfLines={1}
+                        className="text-xs text-[#8B949E]"
+                      >
+                        {venue.phone}
+                      </Text>
+                    </View>
+                  </Pressable>
+                )}
+                {!!venue.whatsappPhone && (
+                  <Pressable
+                    onPress={messageVenue}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Escribir por WhatsApp a ${venue.name}`}
+                    className="min-h-12 flex-1 flex-row items-center justify-center rounded-xl bg-[#2C4930] px-3"
+                  >
+                    <Ionicons name="logo-whatsapp" size={20} color="#80D160" />
+                    <View className="ml-2 flex-shrink">
+                      <Text className="font-semibold text-[#80D160]">
+                        WhatsApp
+                      </Text>
+                      <Text
+                        numberOfLines={1}
+                        className="text-xs text-[#A9B1B8]"
+                      >
+                        {venue.whatsappPhone}
+                      </Text>
+                    </View>
+                  </Pressable>
+                )}
+              </View>
+            )}
           </View>
 
-          {!!venue.description && (
-            <Text className="mt-5 text-[15px] leading-6 text-[#C5CBD1]">
-              {venue.description}
-            </Text>
-          )}
+          <View className="h-6" />
 
-          {(venue.phone || venue.whatsappPhone) && (
-            <View className="mt-5 flex-row gap-3">
-              {!!venue.phone && (
-                <View className="flex-1 flex-row items-center rounded-xl border border-[#252D31] bg-[#0D1517] px-3 py-3">
-                  <Ionicons name="call-outline" size={18} color="#80D160" />
-                  <Text
-                    numberOfLines={1}
-                    className="ml-2 flex-1 text-sm text-[#C5CBD1]"
-                  >
-                    {venue.phone}
-                  </Text>
-                </View>
-              )}
-              {!!venue.whatsappPhone && (
-                <View className="flex-1 flex-row items-center rounded-xl border border-[#252D31] bg-[#0D1517] px-3 py-3">
-                  <Ionicons name="logo-whatsapp" size={18} color="#80D160" />
-                  <Text
-                    numberOfLines={1}
-                    className="ml-2 flex-1 text-sm text-[#C5CBD1]"
-                  >
-                    {venue.whatsappPhone}
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
-
-          <View className="my-6 h-px bg-[#252D31]" />
-
-          <View className="mb-4 flex-row items-end justify-between">
-            <View>
-              <Text className="text-xl font-bold text-white">Canchas</Text>
-              <Text className="mt-1 text-sm text-[#8B949E]">
-                Opciones disponibles en el complejo
-              </Text>
-            </View>
-            <Text className="text-sm font-medium text-[#80D160]">
-              {courts.length} {courts.length === 1 ? "cancha" : "canchas"}
-            </Text>
-          </View>
+          <SectionHeading
+            icon="football-outline"
+            title="Canchas"
+            subtitle="Opciones disponibles en el complejo"
+            trailing={
+              <View className="rounded-full bg-[#2C4930] px-3 py-1.5">
+                <Text className="text-xs font-semibold text-[#80D160]">
+                  {courts.length} {courts.length === 1 ? "cancha" : "canchas"}
+                </Text>
+              </View>
+            }
+          />
 
           {courts.length === 0 ? (
-            <View className="rounded-2xl border border-[#252D31] bg-[#0D1517] p-5">
+            <View className="rounded-2xl border border-[#30363D] bg-[#202428] p-5">
               <Text className="text-center text-[#A9B1B8]">
                 No hay canchas activas publicadas.
               </Text>
@@ -461,13 +746,16 @@ export default function VenueDetailScreen() {
                       imageUrl={courtImages[court.id]}
                       selected={court.id === selectedCourtId}
                       onPress={() => selectCourtAt(index)}
+                      onImagePress={() => openCourtGallery(court)}
+                      imageCount={courtGalleryImages[court.id]?.length}
+                      imageLoading={courtGalleryLoadingId === court.id}
                     />
                   </View>
                 ))}
               </ScrollView>
 
               {courts.length > 1 && (
-                <View className="mb-4 flex-row items-center self-center rounded-full border border-[#252D31] bg-[#0D1517] px-3 py-2">
+                <View className="mb-4 flex-row items-center self-center rounded-full border border-[#30363D] bg-[#202428] px-3 py-2">
                   {courts.map((court, index) => (
                     <Pressable
                       key={court.id}
@@ -490,13 +778,12 @@ export default function VenueDetailScreen() {
 
           {courts.length > 0 && (
             <>
-              <View className="my-3 h-px bg-[#252D31]" />
-              <Text className="mt-3 text-xl font-bold text-white">
-                Disponibilidad
-              </Text>
-              <Text className="mb-4 mt-1 text-sm text-[#8B949E]">
-                Elegí una cancha, una fecha y un turno libre.
-              </Text>
+              <View className="h-4" />
+              <SectionHeading
+                icon="calendar-outline"
+                title="Disponibilidad"
+                subtitle="Elegí una cancha, una fecha y un turno libre"
+              />
 
               {!!requestedTime && selectedDate === initialDate && (
                 <View className="mb-4 flex-row items-center rounded-xl border border-[#315C3B] bg-[#142019] px-3 py-2.5">
@@ -520,7 +807,7 @@ export default function VenueDetailScreen() {
                     className={`mr-2 rounded-xl border px-4 py-3 ${
                       selectedDate === date
                         ? "border-[#80D160] bg-[#2C4930]"
-                        : "border-[#252D31] bg-[#0D1517]"
+                        : "border-[#30363D] bg-[#202428]"
                     }`}
                   >
                     <Text
@@ -536,7 +823,7 @@ export default function VenueDetailScreen() {
                 ))}
               </ScrollView>
 
-              <View className="rounded-2xl border border-[#252D31] bg-[#0D1517] p-4">
+              <View className="rounded-2xl border border-[#30363D] bg-[#202428] p-4">
                 {availabilityLoading ? (
                   <View className="items-center py-5">
                     <ActivityIndicator color="#80D160" />
@@ -575,7 +862,7 @@ export default function VenueDetailScreen() {
                               ? "border-[#80D160] bg-[#2C4930]"
                               : slot.available
                                 ? "border-[#315C3B] bg-[#142019]"
-                                : "border-[#252D31] bg-[#202428]"
+                                : "border-[#30363D] bg-[#292D32]"
                           }`}
                         >
                           <Text
@@ -605,13 +892,14 @@ export default function VenueDetailScreen() {
             </>
           )}
 
-          <View className="my-3 h-px bg-[#252D31]" />
-          <Text className="mt-3 text-xl font-bold text-white">Horarios</Text>
-          <Text className="mb-4 mt-1 text-sm text-[#8B949E]">
-            Horarios habituales del complejo
-          </Text>
+          <View className="h-7" />
+          <SectionHeading
+            icon="time-outline"
+            title="Horarios"
+            subtitle="Horarios habituales del complejo"
+          />
 
-          <View className="overflow-hidden rounded-2xl border border-[#252D31] bg-[#0D1517]">
+          <View className="overflow-hidden rounded-2xl border border-[#30363D] bg-[#202428]">
             {DAYS.map((day, index) => {
               const ranges = openingHours.filter(
                 (hour) => Number(hour.dayOfWeek) === index + 1,
@@ -619,7 +907,7 @@ export default function VenueDetailScreen() {
               return (
                 <View
                   key={day}
-                  className={`flex-row items-center justify-between px-4 py-3 ${index < DAYS.length - 1 ? "border-b border-[#252D31]" : ""}`}
+                  className={`flex-row items-center justify-between px-4 py-3.5 ${index < DAYS.length - 1 ? "border-b border-[#30363D]" : ""}`}
                 >
                   <Text className="font-medium text-[#C5CBD1]">{day}</Text>
                   <Text
@@ -645,11 +933,20 @@ export default function VenueDetailScreen() {
 
       <Pressable
         onPress={() => router.back()}
-        className="absolute left-4 h-11 w-11 items-center justify-center rounded-full bg-black/75"
-        style={{ top: top + 10 }}
+        className="absolute left-4 h-11 w-11 items-center justify-center rounded-xl border border-white/10"
+        style={{ top: top + 10, backgroundColor: "rgba(23, 25, 28, 0.9)" }}
       >
         <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
       </Pressable>
+
+      {activeGalleryImages.length > 0 && (
+        <VenueGallery
+          visible={galleryVisible}
+          images={activeGalleryImages}
+          initialIndex={galleryInitialIndex}
+          onClose={() => setGalleryVisible(false)}
+        />
+      )}
     </View>
   );
 }
