@@ -55,7 +55,7 @@ export default function PlayerReservationsView() {
   );
 
   return (
-    <View className="flex-1 bg-[#17191C]" style={{ paddingTop: top + 5 }}>
+    <View className="flex-1 bg-[#17191C]" style={{ paddingTop: top }}>
       <View className="px-4 pb-6 pt-4">
         <View className="flex-row items-center justify-between">
           <View>
@@ -63,7 +63,7 @@ export default function PlayerReservationsView() {
             <Text className="mt-1 text-sm text-[#A9B1B8]">Tus reservas</Text>
           </View>
           <View className="h-11 w-11 items-center justify-center rounded-xl bg-[#2C4930]">
-            <Ionicons name="calendar-outline" size={30} color="#80D160" />
+            <Ionicons name="calendar-outline" size={22} color="#80D160" />
           </View>
         </View>
       </View>

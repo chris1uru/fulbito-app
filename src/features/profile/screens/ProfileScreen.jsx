@@ -11,7 +11,7 @@ import { useAuth } from "../../../providers/AuthProvider";
 
 export default function ProfileScreen() {
   const { user, refreshUser, signOut, deleteAccount } = useAuth();
-  const { bottom } = useSafeAreaInsets();
+  const { top, bottom } = useSafeAreaInsets();
   const router = useRouter();
   const canManageVenues = user.role === "ADMIN" || user.role === "OWNER";
   const roleLabel = {
@@ -60,12 +60,12 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: "#17191C" }}
-      edges={["top"]}
+      edges={["top + 5"]}
     >
       <ScrollView
-        contentContainerClassName="px-4 pt-5"
+        contentContainerClassName="px-4"
         contentContainerStyle={{
-          paddingTop: 16,
+          paddingTop: 15,
           paddingHorizontal: 12,
           paddingBottom: bottom + 88,
         }}
@@ -151,18 +151,6 @@ export default function ProfileScreen() {
           </Text>
         </TouchableOpacity>
 
-        {user.role !== "ADMIN" && (
-          <TouchableOpacity
-            className="mt-3 flex-row items-center justify-center rounded-xl py-3"
-            onPress={confirmDeleteAccount}
-          >
-            <Ionicons name="trash-outline" size={18} color="#8B949E" />
-            <Text className="ml-2 text-sm font-medium text-[#8B949E]">
-              Eliminar mi cuenta
-            </Text>
-          </TouchableOpacity>
-        )}
-
         {canManageVenues && (
           <>
             <Text className="mb-3 mt-6 text-xs font-semibold uppercase tracking-widest text-[#8B949E]">
@@ -234,6 +222,18 @@ export default function ProfileScreen() {
             Cerrar sesión
           </Text>
         </TouchableOpacity>
+
+        {user.role !== "ADMIN" && (
+          <TouchableOpacity
+            className="mt-3 flex-row items-center justify-center rounded-xl py-3"
+            onPress={confirmDeleteAccount}
+          >
+            <Ionicons name="trash-outline" size={18} color="#8B949E" />
+            <Text className="ml-2 text-sm font-medium text-[#8B949E]">
+              Eliminar mi cuenta
+            </Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

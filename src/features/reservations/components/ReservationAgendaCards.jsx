@@ -119,9 +119,6 @@ export function CompactReservationCard({
         <Text className="mt-1 text-xs font-bold text-white">
           {timeLabel(reservation.startsAt)}
         </Text>
-        <Text className="text-[10px] text-[#69727B]">
-          a {timeLabel(reservation.endsAt)}
-        </Text>
       </View>
       <View className="flex-1">
         <Text numberOfLines={1} className="font-semibold text-white">
