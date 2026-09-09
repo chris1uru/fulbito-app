@@ -71,7 +71,7 @@ export default function PlayerReservationsView() {
             <Text className="mt-1 text-sm text-[#A9B1B8]">Tus reservas</Text>
           </View>
           <View className="h-11 w-11 items-center justify-center rounded-xl bg-[#2C4930]">
-            <Ionicons name="calendar-outline" size={30} color="#80D160" />
+            <Ionicons name="calendar-outline" size={22} color="#80D160" />
           </View>
         </View>
       </View>

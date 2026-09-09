@@ -1,0 +1,686 @@
+INFORME INTEGRAL DE QA Y CIBERSEGURIDAD - FULBITO APP
+Fecha de ejecucion: 2026-09-09
+Repositorio evaluado: fulbito-app
+Tipo de auditoria: caja gris del cliente Expo y caja negra segura del API configurado
+Regla de trabajo: no se modifico codigo ni se alteraron datos de negocio
+
+======================================================================
+1. RESUMEN EJECUTIVO
+======================================================================
+
+Estado general: NO APTO PARA APROBAR UNA LIBERACION SIN EXCEPCIONES.
+
+Motivos principales:
+
+- El API activo usa HTTP sin cifrado. Credenciales, bearer tokens y datos pueden ser
+  interceptados o modificados por un atacante en la red.
+- El lint falla con 11 errores y 2 advertencias.
+- npm audit informa 4 entradas vulnerables: 3 moderadas y 1 alta upstream.
+- No hay pruebas unitarias, de componentes, integracion ni E2E. Cobertura automatizada
+  aparente: 0%.
+- No se pudo validar la autorizacion real entre PLAYER, OWNER y ADMIN ni ejecutar los
+  flujos completos de negocio porque no se proporcionaron cuentas de prueba ni un
+  entorno desechable.
+- Se identificaron defectos estaticos de autorizacion de rutas, carreras de requests,
+  manejo de fechas, validacion y recuperacion de errores.
+
+Aspectos positivos:
+
+- Los bundles de Android, iOS y web se generan correctamente.
+- expo-doctor completa 21/21 controles.
+- Las lecturas publicas del API respondieron y sus esquemas basicos fueron coherentes.
+- Se probaron 53 de las 54 operaciones API inventariadas de forma no destructiva.
+- Las 30 solicitudes mutantes probadas sin autenticacion fueron rechazadas con 401.
+- CORS rechazo un origen hostil.
+- No se encontraron secretos versionados como API keys, JWT, claves privadas o tokens.
+- El token se guarda en SecureStore en Android/iOS y en sessionStorage en web.
+- No se observaron eval, WebView, HTML inseguro ni logs de contrasenas o tokens.
+
+Conteo de hallazgos registrados en este informe:
+
+- Criticos: 0 confirmados.
+- Altos: 3.
+- Medios: 12.
+- Bajos: 13.
+- Riesgos que requieren backend/cuentas para confirmarse: 5.
+
+La compilacion exitosa demuestra que el codigo puede empaquetarse; no demuestra que
+todos los botones, permisos, navegacion, reglas de rol y operaciones autenticadas
+funcionen correctamente en dispositivos reales.
+
+======================================================================
+2. ALCANCE Y LIMITACIONES
+======================================================================
+
+Incluido:
+
+- Arquitectura, configuracion Expo y dependencias.
+- Todas las rutas y pantallas encontradas.
+- Inventario estatico de botones, campos, enlaces, modales y gestos.
+- Los 54 metodos/endpoints declarados en src/services/api.js.
+- Bundle de Android, iOS y web.
+- Lint, Expo Doctor y auditoria npm.
+- Sesion, almacenamiento del token, deep links, enlaces externos y Cloudinary.
+- Pruebas publicas del API, validaciones negativas, CORS y limites de autenticacion.
+- Inspeccion de autorizacion cliente, validacion de entrada, errores y fechas.
+
+No incluido o no verificable:
+
+- No existe codigo backend, base de datos, migraciones ni politicas RLS en este repo.
+- No se recibieron cuentas PLAYER, OWNER y ADMIN de prueba.
+- No se recibio un ambiente staging con datos desechables.
+- No se ejecutaron acciones autenticadas que crearan, editaran, pagaran, cancelaran o
+  eliminaran datos reales.
+- POST /api/auth/register-player no se ejecuto porque crearia una cuenta real.
+- No se hizo prueba fisica con Android/iOS, permisos de galeria, llamada, WhatsApp,
+  Google Maps, Waze, VoiceOver o TalkBack.
+- No se dispuso de automatizacion de navegador/dispositivo para pulsar visualmente cada
+  boton. Los controles UI fueron cubiertos por inspeccion estatica y compilacion, no por
+  ejecucion E2E.
+- No se hicieron pruebas de carga, fuerza bruta, DAST intrusivo ni denegacion de servicio.
+- No se midio cobertura porque el proyecto no tiene runner ni tests configurados.
+
+Estas limitaciones impiden afirmar que "todo funciona". El resultado correcto es que
+la porcion publica y empaquetable funciona, mientras que los flujos autenticados y la
+seguridad del servidor permanecen pendientes de evidencia.
+
+======================================================================
+3. ENTORNO Y COMANDOS EJECUTADOS
+======================================================================
+
+- Node.js: v24.12.0
+- npm: 11.6.2
+- Expo CLI: 57.0.23
+- SDK resuelto por Expo: 57.0.0
+- Plataformas: Android, iOS y web
+- API: host LAN configurado mediante EXPO_PUBLIC_API_URL, protocolo HTTP
+
+Comandos principales:
+
+- git status --short
+- npm run lint
+- npx expo-doctor
+- npm audit --json
+- npm audit --omit=dev --json
+- npm audit --audit-level=moderate
+- npm ls js-yaml query-string decode-uri-component --all
+- npx expo config --type public
+- npx expo export --platform all --output-dir <directorio temporal externo>
+- Pruebas HTTP seguras sobre todos los endpoints declarados
+
+Los artefactos del bundle se generaron fuera del repositorio. Ya existian cambios
+locales no relacionados en app.json, package.json y package-lock.json antes de la
+auditoria; no fueron modificados por esta tarea.
+
+Nota de version: AGENTS.md exige consultar documentacion Expo v54, pero el arbol actual
+resuelve Expo SDK 57. Esta desalineacion documental se registra como hallazgo.
+
+======================================================================
+4. RESULTADOS DE CONTROLES AUTOMATICOS
+======================================================================
+
+4.1 Expo Doctor
+
+Resultado: PASS.
+Detalle: 21/21 checks passed.
+
+4.2 Bundle multiplataforma
+
+Resultado: PASS.
+
+- Web: bundle generado.
+- iOS: bundle generado.
+- Android: bundle generado.
+- No se detectaron errores de resolucion de modulos durante el export.
+
+4.3 Lint
+
+Resultado: FAIL.
+Total: 13 problemas, 11 errores y 2 advertencias.
+
+Archivos afectados:
+
+- src/components/common/CountryPhoneField.jsx: 6 errores Prettier.
+- src/features/auth/screens/LoginScreen.jsx: 1 error Prettier.
+- src/features/auth/screens/RegisterScreen.jsx: 1 error Prettier.
+- src/features/reservations/components/ManagedReservationsView.jsx: 2 errores Prettier.
+- src/features/venues/screens/ScheduleManagementScreen.jsx: 1 error Prettier.
+- src/features/admin/screens/UserFormScreen.jsx: import no utilizado.
+- src/features/profile/screens/ProfileScreen.jsx: variable top no utilizada.
+
+4.4 Tests y cobertura
+
+Resultado: FAIL POR AUSENCIA.
+
+- No existe script test.
+- No se encontraron archivos *.test.* ni *.spec.*.
+- No hay Jest, Vitest, Playwright, Cypress, Detox o Maestro configurados.
+- No hay pruebas unitarias, integracion, componentes, E2E, visuales o accesibilidad.
+- Cobertura automatizada aparente: 0%.
+- El CI instala, ejecuta doctor, audit, lint y export, pero no corre tests.
+
+4.5 Dependencias
+
+Resultado: FAIL.
+
+- Total reportado por npm audit: 4 vulnerabilidades.
+- Alta upstream: js-yaml 4.3.1, GHSA-2883-xcg3-v3hh.
+- Moderada alcanzable desde expo-router: decode-uri-component 0.2.2,
+  GHSA-vcc3-ghjq-m6fr.
+- query-string y expo-router aparecen afectados por la cadena anterior.
+- npm propone para expo-router una solucion mayor/incompatible; no debe aplicarse
+  automaticamente con --force sin validar la matriz Expo.
+- js-yaml esta en tooling de ESLint y Expo CLI; su impacto contextual es CI/desarrollo,
+  no se encontro uso en runtime de la app.
+
+======================================================================
+5. COBERTURA FUNCIONAL DE INTERFAZ
+======================================================================
+
+Se inventariaron las siguientes areas y controles. Estado "ESTATICO" significa que el
+control existe, tiene handler y compila, pero no fue pulsado en un E2E real.
+
+Autenticacion - ESTATICO/PARCIAL API:
+
+- Login: email, contrasena, mostrar/ocultar, iniciar sesion, ir a registro.
+- Registro: datos personales, selector/buscador de pais, telefono, contrasena,
+  mostrar/ocultar, crear cuenta, volver al login.
+- Login negativo con credenciales inexistentes: PASS, devuelve 401 generico.
+- Login con payload vacio: PASS, devuelve 400 JSON.
+- Registro real: NO EJECUTADO para evitar crear datos.
+
+Mapa nativo - ESTATICO:
+
+- Buscar y limpiar busqueda.
+- Abrir filtros.
+- Fecha anterior/siguiente y calendario mensual.
+- Cambiar mes y seleccionar dia.
+- Selector de hora.
+- Mostrar todos/solo disponibles.
+- Marcadores, cerrar preview y ver turnos.
+- Pan y zoom del mapa.
+
+Mapa web - ESTATICO:
+
+- Lista de complejos y boton Ver complejo.
+- No tiene paridad con nativo: faltan mapa, busqueda, fecha, hora, disponibilidad,
+  marcadores y filtro de disponibilidad.
+
+Detalle de complejo - ESTATICO/PARCIAL API:
+
+- Volver, portada, galeria con swipe, cerrar galeria.
+- Como llegar: Google Maps, Waze y app de mapas.
+- Llamar y WhatsApp.
+- Carrusel/seleccion de canchas y fotos.
+- Selector de siete fechas, turnos y confirmacion de reserva.
+- Datos, canchas, horarios, imagenes y disponibilidades publicas: PASS en API.
+- Reserva real: NO EJECUTADA.
+
+Reservas de jugador - ESTATICO:
+
+- Tarjetas, Ver Reserva, proximas y anteriores.
+- Detalle, volver, reintentar y cancelar.
+- Listado/detalle/cancelacion autenticados: NO VERIFICADOS.
+
+Agenda OWNER/ADMIN - ESTATICO:
+
+- Elegir/cambiar complejo.
+- Alternar dia/mes y navegar periodos.
+- Expandir filtros, buscar jugador y filtrar cancha/pago/estado.
+- Abrir reserva y expandir finalizadas/canceladas.
+- Boton flotante para reserva manual.
+- Datos reales y permisos: NO VERIFICADOS.
+
+Reserva manual - ESTATICO:
+
+- Complejo, cancha, fecha rapida/manual, turno, jugador, telefono, observaciones,
+  confirmacion y crear.
+- Creacion real, concurrencia y validaciones backend: NO VERIFICADAS.
+
+Buscar rival - ESTATICO:
+
+- Pull-to-refresh, crear publicacion, estilo y tabs Explorar/Mis publicaciones.
+- Filtros, Quiero jugar, ver interesados, cerrar y reintentar.
+- Modal de publicacion: reserva existente o disponibilidad, formato, 14 dias,
+  franjas horarias, eliminar franja, comentario y publicar.
+- Modal de interesados: cerrar, WhatsApp y llamar.
+- Flujos autenticados y privacidad entre usuarios: NO VERIFICADOS.
+
+Perfil - ESTATICO:
+
+- Editar datos, cambiar contrasena, mostrar/ocultar contrasenas.
+- Gestion de complejos/usuarios segun rol.
+- Cerrar sesion y eliminar cuenta.
+- Persistencia, revocacion y eliminacion real: NO VERIFICADAS.
+
+Gestion OWNER/ADMIN - ESTATICO:
+
+- Complejos: crear, abrir, editar, ver como jugador, reasignar y desactivar.
+- Canchas: listar, crear, editar y gestionar fotos.
+- Horarios: elegir dia, alta/eliminacion de franjas.
+- Bloqueos: cancha, fecha, inicio, fin, motivo, crear y quitar.
+- Imagenes: selector multiple, portada, eliminar y reintentar.
+- Usuarios: crear OWNER, buscar, activar y desactivar.
+- Todas las mutaciones autenticadas: NO VERIFICADAS.
+
+Accesibilidad - PARCIAL ESTATICO:
+
+- Algunos controles tienen accessibilityLabel.
+- Muchos botones de icono no poseen nombre accesible.
+- No se realizo prueba con VoiceOver/TalkBack, foco de modales ni escalado de texto.
+
+======================================================================
+6. MATRIZ DE ENDPOINTS
+======================================================================
+
+Resumen dinamico:
+
+- Operaciones inventariadas: 54.
+- Operaciones ejecutadas de forma segura: 53.
+- Omitidas: 1, registro de jugador por riesgo de crear datos.
+- Sedes publicas encadenadas: 3.
+- Canchas publicas encadenadas: 8.
+- Horarios recibidos: 22.
+- Imagenes recibidas: 8.
+- Departamentos recibidos: 19.
+- Mutaciones sin autenticacion bloqueadas antes del payload: 30/30.
+
+Autenticacion y usuario:
+
+- POST /api/auth/login: 401 con usuario inexistente; 400 con payload vacio.
+- POST /api/auth/register-player: NO EJECUTADO.
+- POST /api/auth/logout: 401 sin sesion.
+- GET /api/users/me: 401 sin sesion.
+- PUT /api/users/me: 401 sin sesion.
+- DELETE /api/users/me: 401 sin sesion.
+- PUT /api/users/me/password: 401 sin sesion.
+
+Complejos:
+
+- GET /api/public/venues: 200, JSON y esquema basico coherente.
+- GET /api/public/venues/{id}: 200; UUID inexistente 404; ID malformado 400.
+- GET /api/public/venues/availability: 200 con parametros validos; 400 con valores
+  invalidos; 500 si faltan date/time.
+- GET /api/owner/venues: 401 sin sesion.
+- PUT /api/owner/venues/{id}: 401 sin sesion.
+- GET /api/admin/venues: 401 sin sesion.
+- GET /api/admin/venues/{id}: 401 sin sesion.
+- POST /api/admin/venues: 401 sin sesion.
+- PUT /api/admin/venues/{id}: 401 sin sesion.
+- PATCH /api/admin/venues/{id}/status: 401 sin sesion.
+
+Usuarios administrativos:
+
+- GET /api/admin/users: 401 sin sesion.
+- POST /api/admin/users: 401 sin sesion.
+- PATCH /api/admin/users/{id}/status: 401 sin sesion.
+
+Canchas:
+
+- GET /api/public/venues/{id}/courts: 200; UUID inexistente []; malformado 400.
+- GET /api/public/courts/{id}/availability: 200; UUID inexistente 404; malformado
+  400; fecha ausente 500.
+- GET /api/owner/venues/{id}/courts: 401 sin sesion.
+- POST /api/owner/venues/{id}/courts: 401 sin sesion.
+- PUT /api/owner/courts/{id}: 401 sin sesion.
+
+Horarios y bloqueos:
+
+- GET /api/public/venues/{id}/opening-hours: 200; UUID inexistente []; malformado 400.
+- POST /api/owner/venues/{id}/opening-hours: 401 sin sesion.
+- DELETE /api/owner/opening-hours/{id}: 401 sin sesion.
+- GET /api/owner/courts/{id}/blocks: 401 sin sesion.
+- POST /api/owner/courts/{id}/blocks: 401 sin sesion.
+- DELETE /api/owner/blocks/{id}: 401 sin sesion.
+
+Reservas:
+
+- POST /api/reservations: 401 sin sesion.
+- GET /api/reservations/{id}: 401 sin sesion.
+- GET /api/reservations/mine: 401 sin sesion.
+- GET /api/reservations/owner-agenda: 401 sin sesion.
+- PATCH /api/reservations/{id}/mark-paid: 401 sin sesion.
+- PATCH /api/reservations/{id}/cancel-owner: 401 sin sesion.
+- PATCH /api/reservations/{id}/cancel-player: 401 sin sesion.
+
+Matchmaking:
+
+- GET /api/match-requests: 401 sin sesion.
+- GET /api/match-requests/mine: 401 sin sesion.
+- POST /api/match-requests: 401 sin sesion.
+- PATCH /api/match-requests/{id}/close: 401 sin sesion.
+- POST /api/match-requests/{id}/interests: 401 sin sesion.
+- GET /api/match-requests/{id}/interests: 401 sin sesion.
+
+Departamentos e imagenes:
+
+- GET /api/departments: 200, 19 elementos validos.
+- GET /api/public/venues/{id}/images: 200; inexistente []; malformado 400.
+- GET /api/public/courts/{id}/images: 200; inexistente []; malformado 400.
+- POST de firmas y registro de imagenes OWNER: 401 sin sesion.
+- PATCH de portada OWNER: 401 sin sesion.
+- DELETE de imagenes OWNER: 401 sin sesion.
+
+Contrato HTTP y seguridad observada:
+
+- CORS con https://evil.example: 403, sin Access-Control-Allow-Origin.
+- Preflight de origen hostil: rechazado.
+- Respuestas publicas: JSON.
+- Imagenes publicas: URLs HTTPS.
+- Cabeceras positivas: X-Content-Type-Options nosniff, X-Frame-Options DENY y no-store.
+- HTTPS del host API: no disponible.
+- HEAD sobre recursos publicos: 401 aunque GET es 200.
+- 401/403 sin Content-Type ni contrato JSON uniforme.
+- No se observaron correos, tokens, contrasenas ni usuarios en respuestas publicas.
+- Las sedes publicas incluyen contacto y ubicacion precisa; debe confirmarse que sean
+  datos comerciales autorizados para publicacion.
+
+======================================================================
+7. HALLAZGOS PRIORIZADOS
+======================================================================
+
+ALTO-01 - API y credenciales transmitidos por HTTP
+
+Evidencia:
+- .env:1 y .env.example:1 usan http://.
+- src/services/api.js:28-35 envia JSON y Authorization al host configurado.
+- Login, registro y cambio de contrasena usan el mismo transporte.
+- La prueba dinamica confirmo que el servicio HTTP esta activo y HTTPS no negocia.
+
+Impacto:
+Intercepcion o alteracion de contrasenas, tokens bearer, datos personales, reservas y
+firmas de subida por un atacante en la misma red o en posicion MITM.
+
+ALTO-02 - Ruta Buscar Rival accesible por URL a roles no PLAYER
+
+Evidencia:
+- app/(tabs)/_layout.jsx:52-60 oculta la tab para otros roles.
+- app/_layout.jsx:34-39 permite el grupo tabs a cualquier autenticado.
+- app/(tabs)/buscar-rival.jsx no valida rol.
+
+Impacto:
+OWNER o ADMIN puede abrir la ruta por deep link/web. La severidad servidor depende de
+que el backend valide correctamente el rol.
+
+ALTO-03 - OWNER puede abrir alta de complejo y solicitar /undefined
+
+Evidencia:
+- app/_layout.jsx:40-48 protege venueForm para OWNER y ADMIN.
+- VenueManagementScreen.jsx:148-160 solo muestra Crear a ADMIN.
+- VenueFormScreen.jsx:192-201 hace update para no-ADMIN aunque mode=create y venueId
+  puede no existir.
+
+Impacto:
+Flujo roto por deep link y solicitud PUT /api/owner/venues/undefined. Si el backend
+tuviera validaciones insuficientes, amplia superficie de autorizacion.
+
+MEDIO-01 - No existe suite automatizada
+
+Impacto:
+No hay deteccion automatica de regresiones en reservas, roles, pagos, cancelaciones,
+fechas, imagenes o matchmaking.
+
+MEDIO-02 - El lint falla
+
+Impacto:
+El pipeline definido no puede quedar verde con el estado evaluado. Los errores son
+principalmente de formato, pero las advertencias revelan logica/imports no usados.
+
+MEDIO-03 - DoS en cadena de Expo Router
+
+Evidencia:
+- expo-router 57.0.20 -> query-string 7.1.3 -> decode-uri-component 0.2.2.
+- GHSA-vcc3-ghjq-m6fr.
+- app.json registra el esquema de deep link fulbito.
+
+Impacto:
+Un enlace con porcentajes malformados podria consumir CPU y bloquear app/pestana.
+
+MEDIO-04 - Parametros ausentes causan 500 en disponibilidad
+
+Evidencia dinamica:
+- /api/public/venues/availability sin date/time: 500.
+- /api/public/courts/{id}/availability sin date: 500.
+
+Impacto:
+Error interno ante entrada cliente invalida, ruido operacional y posible ocultamiento
+de fallos de programacion. El contrato esperado es 400 controlado.
+
+MEDIO-05 - Carrera al publicar busqueda de rival
+
+Evidencia:
+- MatchmakingScreen.jsx:1087-1090 cambia view y llama load inmediatamente.
+- MatchmakingScreen.jsx:787-824 puede lanzar otra carga por cambio de view.
+- No hay cancelacion ni identificador de request.
+
+Impacto:
+La respuesta de Explorar puede sobrescribir Mis publicaciones y mostrar datos
+inconsistentes.
+
+MEDIO-06 - Zona horaria inconsistente en detalle de reserva
+
+Evidencia:
+- ReservaDetailScreen.jsx:38-45 usa toLocaleString sin America/Montevideo.
+- src/utils/uruguayDateTime.js usa explicitamente America/Montevideo en otros flujos.
+
+Impacto:
+La fecha limite de cancelacion puede verse incorrecta fuera de Uruguay.
+
+MEDIO-07 - Reserva manual queda bloqueada tras fallo de canchas
+
+Evidencia:
+- ManualReservationScreen.jsx:122-149 guarda el fallo en error global.
+- ManualReservationScreen.jsx:276-280 reemplaza el formulario sin reintento.
+
+Impacto:
+Un error transitorio obliga a abandonar la pantalla.
+
+MEDIO-08 - Alta de OWNER no valida telefono
+
+Evidencia:
+- UserFormScreen.jsx:8-10 importa phoneValidationMessage.
+- UserFormScreen.jsx:55-80 no lo ejecuta y envia el telefono.
+
+Impacto:
+Datos invalidos e inconsistencia frente a registro/edicion de perfil.
+
+MEDIO-09 - Fallo de conteos inutiliza seleccion de complejo
+
+Evidencia:
+- ManagedReservationsView.jsx:56-96 carga sedes y conteos en un mismo try/error global.
+
+Impacto:
+Si falla agenda pero cargan sedes, la UI descarta datos utilizables.
+
+MEDIO-10 - Paridad web/nativo incompleta
+
+Evidencia:
+- MapsScreen.jsx ofrece mapa, busqueda, fecha, hora y disponibilidad.
+- MapsScreen.web.jsx solo lista complejos.
+
+Impacto:
+Usuarios web no pueden realizar desde inicio el mismo descubrimiento que en nativo.
+
+MEDIO-11 - Autorizacion cliente con comportamiento fail-open para roles desconocidos
+
+Evidencia:
+- ReservationsScreen.jsx:8-10 envia cualquier rol distinto de PLAYER a gestion.
+- ReservaDetailScreen.jsx:103-105 usa cancelOwner para cualquier no-PLAYER.
+
+Impacto:
+Un rol nuevo/invalido ve UI privilegiada. La explotabilidad depende de controles del
+backend.
+
+MEDIO-12 - Riesgo de IDs no validados/codificados en rutas API
+
+Evidencia:
+- src/services/api.js interpola multiples IDs directamente en segmentos URL.
+- Varios IDs provienen de useLocalSearchParams.
+
+Impacto:
+Deep links manipulados pueden causar confusion de ruta. Los IDs publicos malformados
+fueron rechazados por el backend, pero falta verificar todos los endpoints autenticados.
+
+BAJO-01 - js-yaml vulnerable en tooling
+
+Evidencia: js-yaml 4.3.1 bajo ESLint y Expo CLI, GHSA-2883-xcg3-v3hh.
+Impacto contextual: posible consumo de CPU en desarrollo/CI al procesar YAML hostil.
+
+BAJO-02 - Bearer agregado tambien a endpoints publicos
+
+Evidencia: src/services/api.js:28-35 agrega Authorization a toda request si hay token.
+Impacto: exposicion innecesaria en logs, proxies y endpoints que no requieren sesion.
+
+BAJO-03 - Safe area invalida en Perfil
+
+Evidencia: ProfileScreen.jsx:60-64 usa edges={["top + 5"]}; top no se utiliza.
+Impacto: posible solapamiento con barra de estado y comportamiento inesperado.
+
+BAJO-04 - Listado de reservas de jugador sin reintento
+
+Evidencia: PlayerReservationsView.jsx:75-83 solo muestra texto de error.
+Impacto: recuperacion pobre ante fallos transitorios.
+
+BAJO-05 - Llamada a interesados sin manejo de rechazo
+
+Evidencia: MatchmakingScreen.jsx:740-742 no captura fallo de Linking.openURL.
+Impacto: promesa rechazada sin feedback en web/dispositivos sin handler.
+
+BAJO-06 - Telefono nulo puede romper WhatsApp
+
+Evidencia: MatchmakingScreen.jsx:678-679 ejecuta phone.replace sin guarda.
+Impacto: TypeError ante datos historicos/inconsistentes.
+
+BAJO-07 - Selector telefonico parcialmente controlado
+
+Evidencia: CountryPhoneField.jsx:245-249 inicializa estado desde value sin
+sincronizacion posterior.
+Impacto: reset o carga asincrona puede desincronizar valor visual y valor padre.
+
+BAJO-08 - Prefijos telefonicos compartidos seleccionan primer pais
+
+Evidencia: CountryPhoneField.jsx:216-224 usa el primer match; varios paises usan +1.
+Impacto: pais mostrado incorrectamente para numeros validos.
+
+BAJO-09 - Respuestas publicas exponen storageKey de imagen
+
+Impacto: fuga de identificador interno que aparentemente no necesita el cliente.
+
+BAJO-10 - Contrato HTTP inconsistente
+
+Evidencia: HEAD publico devuelve 401 mientras GET devuelve 200; 401/403 no incluyen
+Content-Type ni JSON uniforme.
+Impacto: interoperabilidad y manejo de errores menos predecibles.
+
+BAJO-11 - Limites de entrada desiguales
+
+Evidencia: nombres, ubicacion, busquedas y motivos no siempre tienen maximos; las
+coordenadas no validan rangos geograficos en cliente.
+Impacto: depende de validacion servidor; riesgo de datos excesivos o invalidos.
+
+BAJO-12 - Accesibilidad incompleta
+
+Evidencia: varios botones solo-icono no tienen accessibilityLabel ni testID.
+Impacto: navegacion deficiente con lectores y automatizacion E2E mas fragil.
+
+BAJO-13 - Documentacion de Expo desalineada
+
+Evidencia: AGENTS.md indica v54; package.json y expo config resuelven SDK 57.
+Impacto: decisiones y cambios futuros pueden basarse en APIs/versiones incorrectas.
+
+======================================================================
+8. RIESGOS NO CONFIRMADOS QUE EXIGEN BACKEND Y CUENTAS
+======================================================================
+
+RIESGO-01 - IDOR/BOLA
+
+Se deben cruzar IDs de reservas, sedes, canchas, horarios, bloqueos, imagenes e
+intereses entre dos PLAYER y dos OWNER. El cliente permite construir requests por ID;
+solo el servidor puede impedir acceso a objetos ajenos.
+
+RIESGO-02 - Escalamiento vertical
+
+Hay que intentar cada endpoint OWNER/ADMIN con PLAYER, cada recurso de OWNER B con
+OWNER A y toda accion administrativa con OWNER.
+
+RIESGO-03 - Token web en sessionStorage
+
+Una futura XSS o dependencia comprometida podria leerlo. No se encontro un sink XSS
+directo en esta auditoria. Para web, una cookie HttpOnly/Secure/SameSite reduce riesgo.
+
+RIESGO-04 - Destino Cloudinary confiado desde backend
+
+cloudinary.js usa uploadUrl recibido del servidor sin validar esquema/host. Un backend
+comprometido o MITM en HTTP podria redirigir la imagen y parametros firmados.
+
+RIESGO-05 - Autorizacion/RLS no verificables
+
+No hay backend ni SQL en este repositorio. Las rutas protegidas de Expo Router son UX,
+no una barrera de seguridad. El servidor debe validar rol, propiedad y tenant en cada
+operacion.
+
+======================================================================
+9. MATRIZ MINIMA PENDIENTE PARA CERTIFICAR LA APP
+======================================================================
+
+Prioridad P0:
+
+- Login exitoso/fallido, expiracion, logout y revocacion para los tres roles.
+- Acceso directo/deep link a cada ruta con anonimo, PLAYER, OWNER y ADMIN.
+- Intentos IDOR con dos jugadores y dos propietarios.
+- Reserva concurrente del mismo turno desde dos sesiones.
+- Cancelacion PLAYER dentro/fuera de plazo y cancelacion OWNER.
+- Marcar pago, doble pulsacion e idempotencia.
+- Alta/edicion/desactivacion de OWNER, complejo y cancha en staging.
+- Confirmar que ninguna credencial/token viaje por HTTP.
+
+Prioridad P1:
+
+- Agenda dia/mes y combinacion de todos los filtros.
+- Reserva manual: fecha invalida, cancha ajena, turno ocupado y errores transitorios.
+- Matchmaking: publicar, interes repetido, privacidad, cerrar y carrera de requests.
+- Horarios solapados, cruce de medianoche y bloqueos sobre reservas existentes.
+- Subida multiple/parcial, limites, portada, borrado y Cloudinary host validation.
+- Fechas en America/Montevideo desde dispositivos en otras zonas.
+- Android e iOS reales: galeria, mapas, Waze, llamada, WhatsApp y deep links.
+
+Prioridad P2:
+
+- VoiceOver/TalkBack, foco modal, contraste, escalado de texto y tamanos tactiles.
+- Paridad funcional web/nativo.
+- Red lenta, offline, timeout, JSON invalido, 401 y 500 en cada pantalla.
+- Performance con volumen alto de complejos, reservas, imagenes y solicitudes.
+- Rate limiting controlado para login y endpoints costosos.
+
+Datos necesarios para ejecutar esta matriz:
+
+- URL HTTPS de staging.
+- Dos cuentas PLAYER, dos OWNER y un ADMIN.
+- Sedes/canchas/reservas desechables y permiso para crear/eliminar.
+- Dispositivo o emulador Android y simulador/dispositivo iOS.
+- Definicion esperada de paridad web y politica de publicacion de telefonos/ubicacion.
+
+======================================================================
+10. CRITERIO DE SALIDA RECOMENDADO
+======================================================================
+
+No liberar hasta cumplir como minimo:
+
+- API HTTPS obligatorio en todos los ambientes usados con credenciales reales.
+- Lint en verde.
+- Dependencias vulnerables evaluadas/actualizadas sin romper la matriz Expo.
+- Autorizacion por rol y por propiedad probada negativamente en backend.
+- Sin defectos P0/altos abiertos.
+- Tests automatizados para autenticacion, rutas por rol, reservas, cancelacion, pago,
+  concurrencia y fechas.
+- Smoke E2E en Android, iOS y web.
+- Evidencia de que logs y respuestas servidor no exponen tokens, stack traces ni PII.
+
+Evaluacion final:
+
+La app esta en un punto funcionalmente empaquetable y el API publico responde, pero no
+esta certificada de extremo a extremo. La ausencia de cifrado en el API, el lint roto,
+las dependencias reportadas y la falta total de tests/autorizacion autenticada impiden
+considerarla lista para produccion con un nivel de confianza QA y seguridad adecuado.
+
+FIN DEL INFORME

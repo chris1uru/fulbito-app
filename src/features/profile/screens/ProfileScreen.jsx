@@ -63,7 +63,7 @@ export default function ProfileScreen() {
       edges={["top"]}
     >
       <ScrollView
-        contentContainerClassName="px-4 pt-5"
+        contentContainerClassName="px-4"
         contentContainerStyle={{
           paddingTop: 16,
           paddingHorizontal: 12,
@@ -240,6 +240,7 @@ export default function ProfileScreen() {
             Cerrar sesión
           </Text>
         </TouchableOpacity>
+
         {user.role !== "ADMIN" && (
           <TouchableOpacity
             className="mt-3 flex-row items-center justify-center rounded-xl py-3"
