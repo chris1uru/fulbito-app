@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Linking,
@@ -445,6 +445,8 @@ function CreateMatchModal({ visible, reservations, onClose, onCreated }) {
             </Text>
           </View>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Cerrar publicación"
             onPress={onClose}
             className="h-11 w-11 items-center justify-center rounded-xl bg-[#292D32]"
           >
@@ -580,6 +582,8 @@ function CreateMatchModal({ visible, reservations, onClose, onCreated }) {
               </ScrollView>
 
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Agregar franja horaria"
                 onPress={addWindow}
                 className="mt-4 min-h-11 flex-row items-center justify-center rounded-xl border border-[#315C3B] bg-[#1B2920]"
               >
@@ -601,6 +605,8 @@ function CreateMatchModal({ visible, reservations, onClose, onCreated }) {
                     />
                   </View>
                   <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Eliminar franja ${index + 1}`}
                     onPress={() =>
                       setWindows((current) =>
                         current.filter((_, itemIndex) => itemIndex !== index),
@@ -676,10 +682,35 @@ function InterestsModal({ request, onClose }) {
   }, [request]);
 
   function openWhatsApp(phone) {
-    Linking.openURL(`https://wa.me/${phone.replace(/\D/g, "")}`).catch(() =>
+    const normalized = String(phone ?? "").replace(/\D/g, "");
+    if (!normalized) {
+      AppAlert.alert(
+        "Teléfono no disponible",
+        "Este jugador no tiene un teléfono válido.",
+      );
+      return;
+    }
+    Linking.openURL(`https://wa.me/${normalized}`).catch(() =>
       AppAlert.alert(
         "No se pudo abrir WhatsApp",
         "Podés copiar o llamar al número mostrado.",
+      ),
+    );
+  }
+
+  function openPhone(phone) {
+    const normalized = String(phone ?? "").trim();
+    if (!normalized) {
+      AppAlert.alert(
+        "Teléfono no disponible",
+        "Este jugador no tiene un teléfono válido.",
+      );
+      return;
+    }
+    Linking.openURL(`tel:${normalized}`).catch(() =>
+      AppAlert.alert(
+        "No se pudo iniciar la llamada",
+        "El dispositivo no tiene una aplicación compatible.",
       ),
     );
   }
@@ -695,6 +726,8 @@ function InterestsModal({ request, onClose }) {
             </Text>
           </View>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Cerrar interesados"
             onPress={onClose}
             className="h-11 w-11 items-center justify-center rounded-xl bg-[#292D32]"
           >
@@ -729,6 +762,8 @@ function InterestsModal({ request, onClose }) {
                 </Text>
                 <View className="mt-4 flex-row gap-2">
                   <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Abrir WhatsApp con ${item.playerName}`}
                     onPress={() => openWhatsApp(item.playerPhone)}
                     className="min-h-11 flex-1 flex-row items-center justify-center rounded-xl bg-[#2C4930]"
                   >
@@ -738,7 +773,9 @@ function InterestsModal({ request, onClose }) {
                     </Text>
                   </Pressable>
                   <Pressable
-                    onPress={() => Linking.openURL(`tel:${item.playerPhone}`)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Llamar a ${item.playerName}`}
+                    onPress={() => openPhone(item.playerPhone)}
                     className="min-h-11 flex-1 flex-row items-center justify-center rounded-xl bg-[#292D32]"
                   >
                     <Ionicons name="call-outline" size={19} color="#C5CBD1" />
@@ -770,6 +807,7 @@ function filterDateRange(value) {
 export default function MatchmakingScreen() {
   const { top, bottom } = useSafeAreaInsets();
   const { user } = useAuth();
+  const loadRequestId = useRef(0);
   const [view, setView] = useState("DISCOVER");
   const [style, setStyle] = useState("ALL");
   const [format, setFormat] = useState("ALL");
@@ -786,19 +824,22 @@ export default function MatchmakingScreen() {
 
   const load = useCallback(
     async ({ refresh = false } = {}) => {
+      const requestId = ++loadRequestId.current;
+      const requestedView = view;
       if (refresh) setRefreshing(true);
       else setLoading(true);
       setError("");
       try {
         const range = filterDateRange(dateFilter);
         const [requests, reservationData] = await Promise.all([
-          view === "MINE"
+          requestedView === "MINE"
             ? matchRequestsApi.mine()
             : matchRequestsApi.discover({ style, format, ...range }),
           reservationsApi.mine(),
         ]);
+        if (requestId !== loadRequestId.current) return;
         setItems(
-          view === "MINE"
+          requestedView === "MINE"
             ? requests.filter(
                 (item) =>
                   (style === "ALL" || item.style === style) &&
@@ -808,10 +849,14 @@ export default function MatchmakingScreen() {
         );
         setReservations(reservationData);
       } catch (requestError) {
-        setError(requestError.message);
+        if (requestId === loadRequestId.current) {
+          setError(requestError.message);
+        }
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (requestId === loadRequestId.current) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     },
     [dateFilter, format, style, view],
@@ -820,6 +865,9 @@ export default function MatchmakingScreen() {
   useFocusEffect(
     useCallback(() => {
       load();
+      return () => {
+        loadRequestId.current += 1;
+      };
     }, [load]),
   );
 
@@ -927,6 +975,7 @@ export default function MatchmakingScreen() {
               </Text>
             </View>
             <Pressable
+              accessibilityRole="button"
               onPress={() => requirePhone(() => setCreateVisible(true))}
               className="h-12 w-12 items-center justify-center rounded-xl bg-[#80D160]"
               accessibilityLabel="Publicar búsqueda"
@@ -1085,8 +1134,9 @@ export default function MatchmakingScreen() {
         reservations={reservations}
         onClose={() => setCreateVisible(false)}
         onCreated={() => {
+          loadRequestId.current += 1;
+          setItems([]);
           setView("MINE");
-          load();
         }}
       />
       <InterestsModal

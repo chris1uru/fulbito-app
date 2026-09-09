@@ -82,7 +82,7 @@ function BottomModal({ visible, title, children, onClose }) {
       onRequestClose={onClose}
     >
       <View className="flex-1 justify-end bg-black/60">
-        <Pressable className="flex-1" onPress={onClose} />
+        <Pressable accessible={false} className="flex-1" onPress={onClose} />
         <View
           className="rounded-t-3xl border border-[#30363D] bg-[#17191C] px-5 pt-5"
           style={{ paddingBottom: Math.max(bottom, 24) }}
@@ -123,7 +123,11 @@ function TimeDropdown({
       onRequestClose={onClose}
     >
       <View className="flex-1">
-        <Pressable className="absolute inset-0" onPress={onClose} />
+        <Pressable
+          accessible={false}
+          className="absolute inset-0"
+          onPress={onClose}
+        />
         <View
           className="absolute overflow-hidden rounded-xl border border-[#3B4249] bg-[#202428]"
           style={{

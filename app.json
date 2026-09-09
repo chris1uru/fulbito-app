@@ -8,9 +8,11 @@
     "userInterfaceStyle": "dark",
     "scheme": "fulbito",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.fulbito.app"
     },
     "android": {
+      "package": "com.fulbito.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

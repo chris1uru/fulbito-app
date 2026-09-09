@@ -1,0 +1,9 @@
+appId: com.fulbito.app
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Iniciar sesión"
+- tapOn: "Registrate"
+- assertVisible: "Creá tu cuenta"
+- back
+- assertVisible: "Iniciar sesión"

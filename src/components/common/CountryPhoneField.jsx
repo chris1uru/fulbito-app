@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   Modal,
@@ -208,16 +208,32 @@ const COUNTRIES = [
 
 const DEFAULT_COUNTRY = COUNTRIES.find((country) => country.name === "Uruguay");
 const URUGUAY_DIAL_CODE = "+598";
+const SHARED_DIAL_DEFAULTS = {
+  "+1": "Estados Unidos",
+  "+7": "Rusia",
+};
 
 function digits(value) {
   return String(value ?? "").replace(/\D/g, "");
 }
 
-function splitPhone(value) {
+export function splitPhone(value, preferredCountry) {
   const normalized = String(value ?? "");
-  const match = [...COUNTRIES]
-    .sort((a, b) => b.dialCode.length - a.dialCode.length)
-    .find((country) => normalized.startsWith(country.dialCode));
+  const matches = [...COUNTRIES]
+    .filter((country) => normalized.startsWith(country.dialCode))
+    .sort((a, b) => b.dialCode.length - a.dialCode.length);
+  const longestDialCode = matches[0]?.dialCode;
+  const equallySpecific = matches.filter(
+    (country) => country.dialCode === longestDialCode,
+  );
+  const match =
+    equallySpecific.find(
+      (country) => country.name === preferredCountry?.name,
+    ) ??
+    equallySpecific.find(
+      (country) => country.name === SHARED_DIAL_DEFAULTS[country.dialCode],
+    ) ??
+    equallySpecific[0];
   return {
     country: match ?? DEFAULT_COUNTRY,
     nationalNumber: match
@@ -250,6 +266,14 @@ export default function CountryPhoneField({
   const [nationalNumber, setNationalNumber] = useState(initial.nationalNumber);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    const next = splitPhone(value, country);
+    if (value && next.country.name !== country.name) setCountry(next.country);
+    if (next.nationalNumber !== nationalNumber) {
+      setNationalNumber(next.nationalNumber);
+    }
+  }, [country, nationalNumber, value]);
   const visibleCountries = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     if (!normalized) return COUNTRIES;

@@ -14,8 +14,13 @@ import { useAuth } from "../../../providers/AuthProvider";
 import { reservationsApi } from "../../../services/api";
 import {
   formatUruguayDate,
+  formatUruguayDateTime,
   formatUruguayTime,
 } from "../../../utils/uruguayDateTime";
+import {
+  cancellationActorForRole,
+  isManager as isManagerRole,
+} from "../../../utils/authorization";
 
 const RESERVATION_STATUS = {
   CONFIRMED: "Confirmada",
@@ -36,7 +41,7 @@ function formatAmount(amount, currency) {
 }
 
 function formatDateTime(value) {
-  return value.toLocaleString("es-UY", {
+  return formatUruguayDateTime(value, {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -99,10 +104,15 @@ export default function ReservaDetailScreen() {
   const cancelReservation = useCallback(async () => {
     try {
       setCancelling(true);
-      const updatedReservation =
-        user.role === "PLAYER"
-          ? await reservationsApi.cancelPlayer(reservationId)
-          : await reservationsApi.cancelOwner(reservationId);
+      let updatedReservation;
+      const actor = cancellationActorForRole(user.role);
+      if (actor === "PLAYER") {
+        updatedReservation = await reservationsApi.cancelPlayer(reservationId);
+      } else if (actor === "MANAGER") {
+        updatedReservation = await reservationsApi.cancelOwner(reservationId);
+      } else {
+        throw new Error("Tu cuenta no tiene permiso para cancelar reservas.");
+      }
       setReservation(updatedReservation);
       Alert.alert(
         updatedReservation.lateCancellation
@@ -175,11 +185,13 @@ export default function ReservaDetailScreen() {
     ? new Date(startsAt.getTime() - cancellationNoticeHours * 60 * 60 * 1000)
     : apiCancellationDeadline;
   const isLateNow = Date.now() > cancellationDeadline.getTime();
-  const isManager = user.role === "OWNER" || user.role === "ADMIN";
+  const isManager = isManagerRole(user.role);
   const showPlayerLateWarning =
     user.role === "PLAYER" && !isCancelled && isLateNow;
   const canCancel =
-    reservation.status === "CONFIRMED" && reservation.paymentStatus !== "PAID";
+    (user.role === "PLAYER" || isManager) &&
+    reservation.status === "CONFIRMED" &&
+    reservation.paymentStatus !== "PAID";
   const canMarkPaid =
     isManager &&
     reservation.status === "CONFIRMED" &&

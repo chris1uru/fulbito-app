@@ -6,6 +6,8 @@ if (!__DEV__ && !API_URL.startsWith("https://")) {
   );
 }
 const REQUEST_TIMEOUT_MS = 15_000;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 let token = null;
 let unauthorizedHandler = null;
@@ -18,9 +20,17 @@ export const setUnauthorizedHandler = (handler) => {
   unauthorizedHandler = handler;
 };
 
-async function request(path, { body, ...options } = {}) {
+export function encodePathId(value, label = "recurso") {
+  const id = String(value ?? "").trim();
+  if (!UUID_PATTERN.test(id)) {
+    throw new Error(`No se pudo identificar el ${label}.`);
+  }
+  return encodeURIComponent(id);
+}
+
+async function request(path, { body, authenticated = true, ...options } = {}) {
   const controller = new AbortController();
-  const requestToken = token;
+  const requestToken = authenticated ? token : null;
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   let response;
 
@@ -68,9 +78,14 @@ async function request(path, { body, ...options } = {}) {
 }
 
 export const authApi = {
-  login: (body) => request("/api/auth/login", { method: "POST", body }),
+  login: (body) =>
+    request("/api/auth/login", { method: "POST", body, authenticated: false }),
   registerPlayer: (body) =>
-    request("/api/auth/register-player", { method: "POST", body }),
+    request("/api/auth/register-player", {
+      method: "POST",
+      body,
+      authenticated: false,
+    }),
   me: () => request("/api/users/me"),
   updateMe: (body) => request("/api/users/me", { method: "PUT", body }),
   logout: () => request("/api/auth/logout", { method: "POST" }),
@@ -80,22 +95,33 @@ export const authApi = {
 };
 
 export const venuesApi = {
-  publicList: () => request("/api/public/venues"),
-  publicOne: (id) => request(`/api/public/venues/${id}`),
+  publicList: () => request("/api/public/venues", { authenticated: false }),
+  publicOne: (id) =>
+    request(`/api/public/venues/${encodePathId(id, "complejo")}`, {
+      authenticated: false,
+    }),
   availabilityHour: (date, time) =>
     request(
       `/api/public/venues/availability?date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}&windowMinutes=60`,
+      { authenticated: false },
     ),
   mine: () => request("/api/owner/venues"),
   update: (id, body) =>
-    request(`/api/owner/venues/${id}`, { method: "PUT", body }),
+    request(`/api/owner/venues/${encodePathId(id, "complejo")}`, {
+      method: "PUT",
+      body,
+    }),
   adminList: () => request("/api/admin/venues"),
-  adminOne: (id) => request(`/api/admin/venues/${id}`),
+  adminOne: (id) =>
+    request(`/api/admin/venues/${encodePathId(id, "complejo")}`),
   adminCreate: (body) => request("/api/admin/venues", { method: "POST", body }),
   adminUpdate: (id, body) =>
-    request(`/api/admin/venues/${id}`, { method: "PUT", body }),
+    request(`/api/admin/venues/${encodePathId(id, "complejo")}`, {
+      method: "PUT",
+      body,
+    }),
   adminSetStatus: (id, status) =>
-    request(`/api/admin/venues/${id}/status`, {
+    request(`/api/admin/venues/${encodePathId(id, "complejo")}/status`, {
       method: "PATCH",
       body: { status },
     }),
@@ -108,57 +134,89 @@ export const adminUsersApi = {
     ),
   create: (body) => request("/api/admin/users", { method: "POST", body }),
   setStatus: (id, status) =>
-    request(`/api/admin/users/${id}/status`, {
+    request(`/api/admin/users/${encodePathId(id, "usuario")}/status`, {
       method: "PATCH",
       body: { status },
     }),
 };
 
 export const courtsApi = {
-  list: (venueId) => request(`/api/public/venues/${venueId}/courts`),
-  managedList: (venueId) => request(`/api/owner/venues/${venueId}/courts`),
+  list: (venueId) =>
+    request(`/api/public/venues/${encodePathId(venueId, "complejo")}/courts`, {
+      authenticated: false,
+    }),
+  managedList: (venueId) =>
+    request(`/api/owner/venues/${encodePathId(venueId, "complejo")}/courts`),
   availability: (id, date) =>
     request(
-      `/api/public/courts/${id}/availability?date=${encodeURIComponent(date)}`,
+      `/api/public/courts/${encodePathId(id, "cancha")}/availability?date=${encodeURIComponent(date)}`,
+      { authenticated: false },
     ),
   create: (venueId, body) =>
-    request(`/api/owner/venues/${venueId}/courts`, { method: "POST", body }),
-  update: (id, body) =>
-    request(`/api/owner/courts/${id}`, { method: "PUT", body }),
-};
-
-export const scheduleApi = {
-  hours: (venueId) => request(`/api/public/venues/${venueId}/opening-hours`),
-  addHour: (venueId, body) =>
-    request(`/api/owner/venues/${venueId}/opening-hours`, {
+    request(`/api/owner/venues/${encodePathId(venueId, "complejo")}/courts`, {
       method: "POST",
       body,
     }),
+  update: (id, body) =>
+    request(`/api/owner/courts/${encodePathId(id, "cancha")}`, {
+      method: "PUT",
+      body,
+    }),
+};
+
+export const scheduleApi = {
+  hours: (venueId) =>
+    request(
+      `/api/public/venues/${encodePathId(venueId, "complejo")}/opening-hours`,
+      { authenticated: false },
+    ),
+  addHour: (venueId, body) =>
+    request(
+      `/api/owner/venues/${encodePathId(venueId, "complejo")}/opening-hours`,
+      {
+        method: "POST",
+        body,
+      },
+    ),
   deleteHour: (id) =>
-    request(`/api/owner/opening-hours/${id}`, { method: "DELETE" }),
+    request(`/api/owner/opening-hours/${encodePathId(id, "horario")}`, {
+      method: "DELETE",
+    }),
   blocks: (courtId, from, to) =>
     request(
-      `/api/owner/courts/${courtId}/blocks?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+      `/api/owner/courts/${encodePathId(courtId, "cancha")}/blocks?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
     ),
   addBlock: (courtId, body) =>
-    request(`/api/owner/courts/${courtId}/blocks`, { method: "POST", body }),
-  deleteBlock: (id) => request(`/api/owner/blocks/${id}`, { method: "DELETE" }),
+    request(`/api/owner/courts/${encodePathId(courtId, "cancha")}/blocks`, {
+      method: "POST",
+      body,
+    }),
+  deleteBlock: (id) =>
+    request(`/api/owner/blocks/${encodePathId(id, "bloqueo")}`, {
+      method: "DELETE",
+    }),
 };
 
 export const reservationsApi = {
   create: (body) => request("/api/reservations", { method: "POST", body }),
-  one: (id) => request(`/api/reservations/${id}`),
+  one: (id) => request(`/api/reservations/${encodePathId(id, "reserva")}`),
   mine: () => request("/api/reservations/mine"),
   ownerAgenda: (from, to, venueId) =>
     request(
       `/api/reservations/owner-agenda?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${venueId ? `&venueId=${encodeURIComponent(venueId)}` : ""}`,
     ),
   markPaid: (id) =>
-    request(`/api/reservations/${id}/mark-paid`, { method: "PATCH" }),
+    request(`/api/reservations/${encodePathId(id, "reserva")}/mark-paid`, {
+      method: "PATCH",
+    }),
   cancelOwner: (id) =>
-    request(`/api/reservations/${id}/cancel-owner`, { method: "PATCH" }),
+    request(`/api/reservations/${encodePathId(id, "reserva")}/cancel-owner`, {
+      method: "PATCH",
+    }),
   cancelPlayer: (id) =>
-    request(`/api/reservations/${id}/cancel-player`, { method: "PATCH" }),
+    request(`/api/reservations/${encodePathId(id, "reserva")}/cancel-player`, {
+      method: "PATCH",
+    }),
 };
 
 export const matchRequestsApi = {
@@ -174,43 +232,74 @@ export const matchRequestsApi = {
   mine: () => request("/api/match-requests/mine"),
   create: (body) => request("/api/match-requests", { method: "POST", body }),
   close: (id) =>
-    request(`/api/match-requests/${id}/close`, { method: "PATCH" }),
+    request(`/api/match-requests/${encodePathId(id, "búsqueda")}/close`, {
+      method: "PATCH",
+    }),
   expressInterest: (id) =>
-    request(`/api/match-requests/${id}/interests`, { method: "POST" }),
-  interests: (id) => request(`/api/match-requests/${id}/interests`),
+    request(`/api/match-requests/${encodePathId(id, "búsqueda")}/interests`, {
+      method: "POST",
+    }),
+  interests: (id) =>
+    request(`/api/match-requests/${encodePathId(id, "búsqueda")}/interests`),
 };
 
-export const departmentsApi = { list: () => request("/api/departments") };
+export const departmentsApi = {
+  list: () => request("/api/departments", { authenticated: false }),
+};
 
 export const imagesApi = {
-  venueList: (id) => request(`/api/public/venues/${id}/images`),
-  courtList: (id) => request(`/api/public/courts/${id}/images`),
+  venueList: (id) =>
+    request(`/api/public/venues/${encodePathId(id, "complejo")}/images`, {
+      authenticated: false,
+    }),
+  courtList: (id) =>
+    request(`/api/public/courts/${encodePathId(id, "cancha")}/images`, {
+      authenticated: false,
+    }),
   prepareVenue: (id) =>
-    request(`/api/owner/venues/${id}/images/upload-signature`, {
-      method: "POST",
-    }),
+    request(
+      `/api/owner/venues/${encodePathId(id, "complejo")}/images/upload-signature`,
+      {
+        method: "POST",
+      },
+    ),
   prepareCourt: (id) =>
-    request(`/api/owner/courts/${id}/images/upload-signature`, {
-      method: "POST",
-    }),
+    request(
+      `/api/owner/courts/${encodePathId(id, "cancha")}/images/upload-signature`,
+      {
+        method: "POST",
+      },
+    ),
   addVenue: (id, body) =>
-    request(`/api/owner/venues/${id}/images`, { method: "POST", body }),
+    request(`/api/owner/venues/${encodePathId(id, "complejo")}/images`, {
+      method: "POST",
+      body,
+    }),
   addCourt: (id, body) =>
-    request(`/api/owner/courts/${id}/images`, { method: "POST", body }),
+    request(`/api/owner/courts/${encodePathId(id, "cancha")}/images`, {
+      method: "POST",
+      body,
+    }),
   setVenueCover: (id) =>
-    request(`/api/owner/venue-images/${id}/cover`, { method: "PATCH" }),
+    request(`/api/owner/venue-images/${encodePathId(id, "imagen")}/cover`, {
+      method: "PATCH",
+    }),
   reorderVenue: (id, sortOrder) =>
-    request(`/api/owner/venue-images/${id}/order`, {
+    request(`/api/owner/venue-images/${encodePathId(id, "imagen")}/order`, {
       method: "PATCH",
       body: { sortOrder },
     }),
   reorderCourt: (id, sortOrder) =>
-    request(`/api/owner/court-images/${id}/order`, {
+    request(`/api/owner/court-images/${encodePathId(id, "imagen")}/order`, {
       method: "PATCH",
       body: { sortOrder },
     }),
   deleteVenue: (id) =>
-    request(`/api/owner/venue-images/${id}`, { method: "DELETE" }),
+    request(`/api/owner/venue-images/${encodePathId(id, "imagen")}`, {
+      method: "DELETE",
+    }),
   deleteCourt: (id) =>
-    request(`/api/owner/court-images/${id}`, { method: "DELETE" }),
+    request(`/api/owner/court-images/${encodePathId(id, "imagen")}`, {
+      method: "DELETE",
+    }),
 };

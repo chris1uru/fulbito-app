@@ -2,12 +2,29 @@ import { Platform } from "react-native";
 
 const UPLOAD_TIMEOUT_MS = 60_000;
 
+export function validateUploadUrl(value) {
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error("El destino de subida de imágenes no es válido.");
+  }
+  if (
+    url.protocol !== "https:" ||
+    !/^api(?:-(?:eu|ap))?\.cloudinary\.com$/i.test(url.hostname)
+  ) {
+    throw new Error("El destino de subida de imágenes no es confiable.");
+  }
+  return url.toString();
+}
+
 export async function uploadToCloudinary(preparation, image) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
   const body = new FormData();
 
   try {
+    const uploadUrl = validateUploadUrl(preparation?.uploadUrl);
     if (Platform.OS === "web") {
       const blob = await fetch(image.uri).then((response) => response.blob());
       body.append("file", blob, `fulbito-${Date.now()}.jpg`);
@@ -26,7 +43,7 @@ export async function uploadToCloudinary(preparation, image) {
     body.append("public_id", preparation.publicId);
     body.append("overwrite", String(preparation.overwrite));
 
-    const response = await fetch(preparation.uploadUrl, {
+    const response = await fetch(uploadUrl, {
       method: "POST",
       body,
       signal: controller.signal,

@@ -74,16 +74,22 @@ export default function ManagedReservationsView({ isAdmin }) {
       if (isAdmin || data.length > 1) {
         const { from, to } = uruguayDayRange(uruguayDateKey());
         setCountsLoading(true);
-        const todayAgenda = await reservationsApi.ownerAgenda(from, to);
-        if (requestId !== venuesRequestId.current) return;
+        try {
+          const todayAgenda = await reservationsApi.ownerAgenda(from, to);
+          if (requestId !== venuesRequestId.current) return;
 
-        const counts = Object.fromEntries(data.map((venue) => [venue.id, 0]));
-        todayAgenda.forEach((reservation) => {
-          if (Object.hasOwn(counts, reservation.venueId)) {
-            counts[reservation.venueId] += 1;
+          const counts = Object.fromEntries(data.map((venue) => [venue.id, 0]));
+          todayAgenda.forEach((reservation) => {
+            if (Object.hasOwn(counts, reservation.venueId)) {
+              counts[reservation.venueId] += 1;
+            }
+          });
+          setReservationCounts(counts);
+        } catch {
+          if (requestId === venuesRequestId.current) {
+            setReservationCounts({});
           }
-        });
-        setReservationCounts(counts);
+        }
       } else {
         setReservationCounts({});
       }

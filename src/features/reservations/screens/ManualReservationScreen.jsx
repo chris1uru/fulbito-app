@@ -93,6 +93,8 @@ export default function ManualReservationScreen() {
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(true);
   const [courtsLoading, setCourtsLoading] = useState(false);
+  const [courtsError, setCourtsError] = useState("");
+  const [courtsRetry, setCourtsRetry] = useState(0);
   const [availability, setAvailability] = useState(null);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityError, setAvailabilityError] = useState("");
@@ -127,6 +129,7 @@ export default function ManualReservationScreen() {
     setSelectedCourtId("");
     setSelectedSlot(null);
     setAvailability(null);
+    setCourtsError("");
     if (!selectedVenueId) return;
 
     let active = true;
@@ -140,7 +143,7 @@ export default function ManualReservationScreen() {
         setSelectedCourtId(activeCourts[0]?.id || "");
       })
       .catch((requestError) => {
-        if (active) setError(requestError.message);
+        if (active) setCourtsError(requestError.message);
       })
       .finally(() => {
         if (active) setCourtsLoading(false);
@@ -149,7 +152,7 @@ export default function ManualReservationScreen() {
     return () => {
       active = false;
     };
-  }, [selectedVenueId]);
+  }, [courtsRetry, selectedVenueId]);
 
   useEffect(() => {
     setSelectedSlot(null);
@@ -323,6 +326,21 @@ export default function ManualReservationScreen() {
             </Text>
             {courtsLoading ? (
               <ActivityIndicator color="#80D160" />
+            ) : courtsError ? (
+              <View className="rounded-xl border border-[#653B40] bg-[#2B2225] p-4">
+                <Text className="text-center text-sm text-[#F08A93]">
+                  {courtsError}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setCourtsRetry((value) => value + 1)}
+                  className="mt-3 min-h-11 items-center justify-center rounded-xl border border-[#653B40]"
+                >
+                  <Text className="font-semibold text-[#F08A93]">
+                    Reintentar canchas
+                  </Text>
+                </Pressable>
+              </View>
             ) : courts.length === 0 ? (
               <Text className="text-sm text-[#A9B1B8]">
                 Este complejo no tiene canchas activas.

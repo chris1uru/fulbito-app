@@ -39,6 +39,7 @@ function Field({
   multiline,
   keyboardType,
   placeholder,
+  maxLength,
 }) {
   return (
     <View className="mb-4">
@@ -53,6 +54,7 @@ function Field({
         textAlignVertical={multiline ? "top" : "center"}
         keyboardType={keyboardType}
         placeholder={placeholder}
+        maxLength={maxLength}
         placeholderTextColor="#69727B"
       />
     </View>
@@ -156,15 +158,31 @@ export default function VenueFormScreen() {
   }
 
   async function save() {
+    if (isCreate && !isAdmin) {
+      Alert.alert(
+        "Acceso restringido",
+        "Solo un administrador puede crear complejos.",
+      );
+      return;
+    }
     if (!form.name.trim() || !form.city.trim() || !form.street.trim()) {
       Alert.alert("Faltan datos", "Completá nombre, ciudad y calle.");
       return;
     }
+    const latitude = Number(form.latitude);
+    const longitude = Number(form.longitude);
     if (
-      !Number.isFinite(Number(form.latitude)) ||
-      !Number.isFinite(Number(form.longitude))
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      latitude < -35.1 ||
+      latitude > -30 ||
+      longitude < -58.6 ||
+      longitude > -53
     ) {
-      Alert.alert("Ubicación inválida", "Revisá la latitud y la longitud.");
+      Alert.alert(
+        "Ubicación inválida",
+        "Las coordenadas deben corresponder a Uruguay.",
+      );
       return;
     }
 
@@ -232,6 +250,30 @@ export default function VenueFormScreen() {
       <View className="flex-1 items-center justify-center bg-[#17191C]">
         <ActivityIndicator size="large" color="#80D160" />
       </View>
+    );
+  }
+
+  if (isCreate && !isAdmin) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: "#17191C" }}>
+        <View className="flex-1 items-center justify-center px-6">
+          <Ionicons name="lock-closed-outline" size={42} color="#F08A93" />
+          <Text className="mt-4 text-center text-xl font-semibold text-white">
+            Acceso restringido
+          </Text>
+          <Text className="mt-2 text-center text-[#A9B1B8]">
+            Solo un administrador puede crear complejos.
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Volver"
+            onPress={() => router.back()}
+            className="mt-6 rounded-xl bg-[#80D160] px-6 py-3"
+          >
+            <Text className="font-semibold text-[#152012]">Volver</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -316,6 +358,7 @@ export default function VenueFormScreen() {
               value={form.ownerSearch}
               onChangeText={(value) => update("ownerSearch", value)}
               placeholder="dueño@complejo.com o 12345678"
+              maxLength={100}
             />
             <Pressable
               disabled={searchingOwners}
@@ -378,12 +421,14 @@ export default function VenueFormScreen() {
             label="Nombre"
             value={form.name}
             onChangeText={(value) => update("name", value)}
+            maxLength={120}
           />
           <Field
             label="Descripción"
             value={form.description}
             onChangeText={(value) => update("description", value)}
             multiline
+            maxLength={2000}
           />
           <Field
             label="Teléfono"
@@ -391,6 +436,7 @@ export default function VenueFormScreen() {
             onChangeText={(value) => update("phone", value)}
             keyboardType="phone-pad"
             placeholder="+598..."
+            maxLength={30}
           />
           <Field
             label="WhatsApp"
@@ -398,6 +444,7 @@ export default function VenueFormScreen() {
             onChangeText={(value) => update("whatsappPhone", value)}
             keyboardType="phone-pad"
             placeholder="+598..."
+            maxLength={30}
           />
         </View>
 
@@ -424,6 +471,7 @@ export default function VenueFormScreen() {
             }
             keyboardType="number-pad"
             placeholder="4"
+            maxLength={3}
           />
 
           <View className="rounded-xl border border-[#315C3B] bg-[#142019] p-3">
@@ -443,31 +491,37 @@ export default function VenueFormScreen() {
             label="Departamento"
             value={form.departmentCode}
             onChangeText={(value) => update("departmentCode", value)}
+            maxLength={3}
           />
           <Field
             label="Ciudad"
             value={form.city}
             onChangeText={(value) => update("city", value)}
+            maxLength={100}
           />
           <Field
             label="Barrio"
             value={form.neighborhood}
             onChangeText={(value) => update("neighborhood", value)}
+            maxLength={100}
           />
           <Field
             label="Calle"
             value={form.street}
             onChangeText={(value) => update("street", value)}
+            maxLength={120}
           />
           <Field
             label="Número"
             value={form.streetNumber}
             onChangeText={(value) => update("streetNumber", value)}
+            maxLength={20}
           />
           <Field
             label="Referencia"
             value={form.reference}
             onChangeText={(value) => update("reference", value)}
+            maxLength={300}
           />
           <View className="flex-row gap-3">
             <View className="flex-1">
@@ -476,6 +530,7 @@ export default function VenueFormScreen() {
                 value={form.latitude}
                 onChangeText={(value) => update("latitude", value)}
                 keyboardType="numbers-and-punctuation"
+                maxLength={12}
               />
             </View>
             <View className="flex-1">
@@ -484,6 +539,7 @@ export default function VenueFormScreen() {
                 value={form.longitude}
                 onChangeText={(value) => update("longitude", value)}
                 keyboardType="numbers-and-punctuation"
+                maxLength={12}
               />
             </View>
           </View>
