@@ -10,14 +10,15 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppAlert as Alert } from "../../../components/common/AppAlert";
+import CountryPhoneField, {
+  phoneValidationMessage,
+} from "../../../components/common/CountryPhoneField";
 import { useAuth } from "../../../providers/AuthProvider";
 
 const fields = [
   ["Nombre", "firstName", "person-outline"],
   ["Apellido", "lastName", "person-outline"],
   ["Correo electrónico", "email", "mail-outline"],
-  ["Teléfono (+598...)", "phone", "call-outline"],
-  ["Contraseña", "password", "lock-closed-outline"],
 ];
 
 export default function RegisterScreen() {
@@ -30,6 +31,7 @@ export default function RegisterScreen() {
     password: "",
   });
   const [loading, setLoading] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   async function register() {
     if (
@@ -42,6 +44,11 @@ export default function RegisterScreen() {
         "Revisa los datos",
         "Completa nombre, apellido, correo y una contraseña de al menos 10 caracteres.",
       );
+      return;
+    }
+    const phoneError = phoneValidationMessage(form.phone);
+    if (phoneError) {
+      Alert.alert("Teléfono inválido", phoneError);
       return;
     }
 
@@ -111,16 +118,53 @@ export default function RegisterScreen() {
                         ? "phone-pad"
                         : "default"
                   }
-                  secureTextEntry={name === "password"}
                 />
               </View>
-              {name === "password" && (
-                <Text className="mt-2 text-xs text-[#8B949E]">
-                  Mínimo 10 caracteres
-                </Text>
-              )}
             </View>
           ))}
+
+          <CountryPhoneField
+            value={form.phone}
+            onChangeText={(phone) =>
+              setForm((current) => ({ ...current, phone }))
+            }
+          />
+
+          <View className="mb-4">
+            <Text className="mb-2 text-sm font-medium text-[#C5CBD1]">
+              Contraseña
+            </Text>
+            <View className="h-13 flex-row items-center rounded-xl border border-[#30363D] bg-[#17191C] px-4">
+              <Ionicons name="lock-closed-outline" size={19} color="#8B949E" />
+              <TextInput
+                className="h-full flex-1 px-3 text-white"
+                placeholder="Contraseña"
+                placeholderTextColor="#69727B"
+                value={form.password}
+                onChangeText={(password) =>
+                  setForm((current) => ({ ...current, password }))
+                }
+                autoCapitalize="none"
+                secureTextEntry={!isPasswordVisible}
+              />
+              <TouchableOpacity
+                onPress={() => setIsPasswordVisible((current) => !current)}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  isPasswordVisible ? "Ocultar contraseña" : "Mostrar contraseña"
+                }
+              >
+                <Ionicons
+                  name={isPasswordVisible ? "eye-off-outline" : "eye-outline"}
+                  size={20}
+                  color="#A9B1B8"
+                />
+              </TouchableOpacity>
+            </View>
+            <Text className="mt-2 text-xs text-[#8B949E]">
+              Mínimo 10 caracteres
+            </Text>
+          </View>
 
           <TouchableOpacity
             className={`mt-2 flex-row items-center justify-center rounded-xl bg-[#80D160] py-4 ${loading ? "opacity-60" : ""}`}

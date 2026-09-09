@@ -13,6 +13,14 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { courtsApi, reservationsApi, venuesApi } from "../../../services/api";
+import {
+  addUruguayDays,
+  addUruguayMonths,
+  dateFromUruguayKey,
+  formatUruguayDate,
+  uruguayDateKey,
+  uruguayDayRange,
+} from "../../../utils/uruguayDateTime";
 import AdminVenueSelector from "./AdminVenueSelector";
 import ReservationManagementList from "./ReservationManagementList";
 
@@ -64,21 +72,11 @@ export default function ManagedReservationsView({ isAdmin }) {
       setLoading(false);
 
       if (isAdmin || data.length > 1) {
-        const today = new Date();
-        const from = new Date(
-          today.getFullYear(),
-          today.getMonth(),
-          today.getDate(),
-        );
-        const to = new Date(
-          today.getFullYear(),
-          today.getMonth(),
-          today.getDate() + 1,
-        );
+        const { from, to } = uruguayDayRange(uruguayDateKey());
         setCountsLoading(true);
         const todayAgenda = await reservationsApi.ownerAgenda(
-          from.toISOString(),
-          to.toISOString(),
+          from,
+          to,
         );
         if (requestId !== venuesRequestId.current) return;
 
@@ -116,22 +114,14 @@ export default function ManagedReservationsView({ isAdmin }) {
   const loadAgenda = useCallback(async () => {
     if (!selectedVenue) return;
 
-    const from =
-      viewMode === "DAY"
-        ? new Date(
-            periodDate.getFullYear(),
-            periodDate.getMonth(),
-            periodDate.getDate(),
-          )
-        : new Date(periodDate.getFullYear(), periodDate.getMonth(), 1);
+    const selectedDate = uruguayDateKey(periodDate);
+    const rangeStart =
+      viewMode === "DAY" ? selectedDate : `${selectedDate.slice(0, 7)}-01`;
+    const { from } = uruguayDayRange(rangeStart);
     const to =
       viewMode === "DAY"
-        ? new Date(
-            periodDate.getFullYear(),
-            periodDate.getMonth(),
-            periodDate.getDate() + 1,
-          )
-        : new Date(periodDate.getFullYear(), periodDate.getMonth() + 1, 1);
+        ? uruguayDayRange(addUruguayDays(rangeStart, 1)).from
+        : uruguayDayRange(addUruguayMonths(rangeStart, 1)).from;
     const requestId = ++agendaRequestId.current;
     setAgendaLoading(true);
     setAgendaError("");
@@ -139,8 +129,8 @@ export default function ManagedReservationsView({ isAdmin }) {
     try {
       const [data, venueCourts] = await Promise.all([
         reservationsApi.ownerAgenda(
-          from.toISOString(),
-          to.toISOString(),
+          from,
+          to,
           selectedVenue?.id,
         ),
         selectedVenue
@@ -182,15 +172,14 @@ export default function ManagedReservationsView({ isAdmin }) {
   );
 
   function changePeriod(offset) {
-    setPeriodDate((current) =>
-      viewMode === "DAY"
-        ? new Date(
-            current.getFullYear(),
-            current.getMonth(),
-            current.getDate() + offset,
-          )
-        : new Date(current.getFullYear(), current.getMonth() + offset, 1),
-    );
+    setPeriodDate((current) => {
+      const currentDate = uruguayDateKey(current);
+      const nextDate =
+        viewMode === "DAY"
+          ? addUruguayDays(currentDate, offset)
+          : addUruguayMonths(currentDate, offset);
+      return dateFromUruguayKey(nextDate);
+    });
   }
 
   function changeViewMode(mode) {
@@ -338,7 +327,7 @@ export default function ManagedReservationsView({ isAdmin }) {
                   {viewMode === "DAY" ? "Agenda del día" : "Agenda mensual"}
                 </Text>
                 <Text className="mt-0.5 font-semibold capitalize text-white">
-                  {periodDate.toLocaleDateString("es-UY", {
+                  {formatUruguayDate(periodDate, {
                     ...(viewMode === "DAY"
                       ? { weekday: "short", day: "numeric", month: "long" }
                       : { month: "long", year: "numeric" }),

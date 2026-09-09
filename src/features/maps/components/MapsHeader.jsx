@@ -11,6 +11,10 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AppHeader from "../../../components/common/AppHeader";
+import {
+  formatUruguayCalendarDate,
+  uruguayDateKey,
+} from "../../../utils/uruguayDateTime";
 
 const TIME_OPTIONS = [
   ...Array.from({ length: 14 }, (_, index) => `${index + 10}:00`),
@@ -20,14 +24,11 @@ const TIME_OPTIONS = [
 const WEEKDAYS = ["D", "L", "M", "M", "J", "V", "S"];
 
 function dateKey(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return uruguayDateKey(date);
 }
 
 function dateLabel(value) {
-  return new Date(`${value}T12:00:00`).toLocaleDateString("es-UY", {
+  return formatUruguayCalendarDate(value, {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -35,7 +36,7 @@ function dateLabel(value) {
 }
 
 function monthLabel(value) {
-  return new Date(`${value}T12:00:00`).toLocaleDateString("es-UY", {
+  return formatUruguayCalendarDate(value, {
     month: "long",
     year: "numeric",
   });

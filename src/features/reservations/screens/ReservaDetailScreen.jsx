@@ -12,6 +12,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AppAlert as Alert } from "../../../components/common/AppAlert";
 import { useAuth } from "../../../providers/AuthProvider";
 import { reservationsApi } from "../../../services/api";
+import {
+  formatUruguayDate,
+  formatUruguayTime,
+} from "../../../utils/uruguayDateTime";
 
 const RESERVATION_STATUS = {
   CONFIRMED: "Confirmada",
@@ -287,7 +291,7 @@ export default function ReservaDetailScreen() {
 
           <View className="mt-5 rounded-2xl bg-[#17191C] px-4">
             <InfoRow icon="calendar-outline" label="Fecha">
-              {startsAt.toLocaleDateString("es-UY", {
+              {formatUruguayDate(startsAt, {
                 weekday: "long",
                 day: "numeric",
                 month: "long",
@@ -296,15 +300,9 @@ export default function ReservaDetailScreen() {
             </InfoRow>
             <View className="h-px bg-[#30363D]" />
             <InfoRow icon="time-outline" label="Horario">
-              {startsAt.toLocaleTimeString("es-UY", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              {formatUruguayTime(startsAt)}
               {" a "}
-              {endsAt.toLocaleTimeString("es-UY", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              {formatUruguayTime(endsAt)}
             </InfoRow>
             <View className="h-px bg-[#30363D]" />
             <InfoRow icon="person-outline" label="Jugador">

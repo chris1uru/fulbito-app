@@ -1,6 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
+import {
+  formatUruguayDate,
+  formatUruguayTime,
+} from "../../../utils/uruguayDateTime";
 
 const PAYMENT_LABELS = {
   PENDING: "Pendiente",
@@ -14,15 +18,12 @@ const RESERVATION_LABELS = {
 };
 
 function timeLabel(value) {
-  return new Date(value).toLocaleTimeString("es-UY", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatUruguayTime(value);
 }
 
 function dateLabel(value, short = false) {
-  return new Date(value).toLocaleDateString(
-    "es-UY",
+  return formatUruguayDate(
+    value,
     short
       ? { day: "numeric", month: "short" }
       : { weekday: "long", day: "numeric", month: "long" },

@@ -34,18 +34,15 @@ export default function LoginScreen() {
       setLoading(false);
     }
   }
-
+ 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#17191C" }}>
       <ScrollView
         contentContainerClassName="flex-grow justify-center px-5 py-8"
         keyboardShouldPersistTaps="handled"
       >
-        <View className="mb-9 items-center">
-          <View className="mb-4 h-16 w-16 items-center justify-center rounded-2xl bg-[#2C4930]">
-            <Ionicons name="football-outline" size={34} color="#80D160" />
-          </View>
-          <Text className="text-4xl font-semibold text-white">
+        <View className="mb-5 items-center">
+          <Text className="mb-9 text-7xl font-semibold text-white">
             Ful<Text className="text-[#80D160]">bito</Text>
           </Text>
           <Text className="mt-2 text-sm text-[#A9B1B8]">

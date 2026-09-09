@@ -1,6 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
 import { Image, Pressable, Text, View } from "react-native";
+import {
+  formatUruguayDate,
+  formatUruguayTime,
+} from "../../../utils/uruguayDateTime";
 
 const RESERVATION_STATUS = {
   CONFIRMED: "Confirmada",
@@ -102,11 +106,7 @@ export default function ReservaCard({
                   isPast ? "text-[#8B949E]" : "text-[#C5CBD1]"
                 }`}
               >
-                {startsAt.toLocaleDateString("es-UY")} ·{" "}
-                {startsAt.toLocaleTimeString("es-UY", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {formatUruguayDate(startsAt)} · {formatUruguayTime(startsAt)}
               </Text>
             </View>
           </View>
@@ -181,11 +181,7 @@ export default function ReservaCard({
           <View className="flex-1 justify-center">
             <Text className="text-xs text-[#8B949E]">Fecha y hora</Text>
             <Text className="mt-0.5 text-sm font-medium text-white">
-              {startsAt.toLocaleDateString("es-UY")} ·{" "}
-              {startsAt.toLocaleTimeString("es-UY", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              {formatUruguayDate(startsAt)} · {formatUruguayTime(startsAt)}
             </Text>
           </View>
         </View>

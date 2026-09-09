@@ -16,6 +16,10 @@ export const MessageIcon = (props) => (
   <Feather name="message-square" size={24} color="white" {...props} />
 );
 
+export const RivalIcon = (props) => (
+  <Ionicons name="people-outline" size={24} color="white" {...props} />
+);
+
 export const AccountIcon = (props) => (
   <Ionicons name="person" size={24} color="white" {...props} />
 );

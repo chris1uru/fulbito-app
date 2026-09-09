@@ -5,6 +5,9 @@ import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppAlert as Alert } from "../../../components/common/AppAlert";
 import { adminUsersApi } from "../../../services/api";
+import CountryPhoneField, {
+  phoneValidationMessage,
+} from "../../../components/common/CountryPhoneField";
 
 const EMPTY = {
   firstName: "",
@@ -154,12 +157,11 @@ export default function UserFormScreen() {
             keyboardType="number-pad"
             placeholder="12345678"
           />
-          <Field
-            label="Teléfono"
+          <CountryPhoneField
             value={form.phone}
-            onChangeText={(value) => update("phone", value)}
-            keyboardType="phone-pad"
-            placeholder="+598..."
+            onChangeText={(phone) =>
+              setForm((current) => ({ ...current, phone }))
+            }
           />
           <Field
             label="Contraseña temporal"
