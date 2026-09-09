@@ -93,6 +93,8 @@ export default function ScheduleManagementScreen() {
   const [savingHour, setSavingHour] = useState(false);
   const [savingBlock, setSavingBlock] = useState(false);
   const [error, setError] = useState("");
+  const [hourMessage, setHourMessage] = useState("");
+  const [activeSection, setActiveSection] = useState("hours");
 
   const loadBase = useCallback(async () => {
     setLoading(true);
@@ -122,13 +124,7 @@ export default function ScheduleManagementScreen() {
     const toDate = uruguayDayRange(addUruguayDays(today, 60)).from;
     setLoadingBlocks(true);
     try {
-      setBlocks(
-        await scheduleApi.blocks(
-          selectedCourtId,
-          fromDate,
-          toDate,
-        ),
-      );
+      setBlocks(await scheduleApi.blocks(selectedCourtId, fromDate, toDate));
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -145,15 +141,26 @@ export default function ScheduleManagementScreen() {
   }, [loadBlocks]);
 
   async function addHour() {
+    setHourMessage("");
     if (
       !validTime(opensAt) ||
       !validTime(closesAt) ||
       timeMinutes(closesAt) <= timeMinutes(opensAt)
     ) {
-      Alert.alert(
-        "Horario inválido",
+      setHourMessage(
         "Usá formato HH:mm y una hora de cierre posterior a la apertura.",
       );
+      return;
+    }
+    if (
+      hours.some(
+        (hour) =>
+          Number(hour.dayOfWeek) === dayOfWeek &&
+          hour.opensAt.slice(0, 5) === opensAt &&
+          hour.closesAt.slice(0, 5) === closesAt,
+      )
+    ) {
+      setHourMessage("Esa franja ya está configurada para este día.");
       return;
     }
     try {
@@ -170,11 +177,68 @@ export default function ScheduleManagementScreen() {
             a.opensAt.localeCompare(b.opensAt),
         ),
       );
+      setHourMessage("Franja agregada correctamente.");
     } catch (requestError) {
-      Alert.alert("No se pudo agregar", requestError.message);
+      setHourMessage(requestError.message);
     } finally {
       setSavingHour(false);
     }
+  }
+
+  async function copyHourToWeekdays() {
+    setHourMessage("");
+    if (
+      !validTime(opensAt) ||
+      !validTime(closesAt) ||
+      timeMinutes(closesAt) <= timeMinutes(opensAt)
+    ) {
+      setHourMessage(
+        "Usá formato HH:mm y una hora de cierre posterior a la apertura.",
+      );
+      return;
+    }
+    const missingDays = [1, 2, 3, 4, 5].filter(
+      (day) =>
+        !hours.some(
+          (hour) =>
+            Number(hour.dayOfWeek) === day &&
+            hour.opensAt.slice(0, 5) === opensAt &&
+            hour.closesAt.slice(0, 5) === closesAt,
+        ),
+    );
+    if (!missingDays.length) {
+      setHourMessage("Esa franja ya existe de lunes a viernes.");
+      return;
+    }
+    setSavingHour(true);
+    const results = await Promise.allSettled(
+      missingDays.map((day) =>
+        scheduleApi.addHour(venueId, {
+          dayOfWeek: day,
+          opensAt,
+          closesAt,
+        }),
+      ),
+    );
+    const created = results
+      .filter((result) => result.status === "fulfilled")
+      .map((result) => result.value);
+    if (created.length) {
+      setHours((current) =>
+        [...current, ...created].sort(
+          (a, b) =>
+            Number(a.dayOfWeek) - Number(b.dayOfWeek) ||
+            a.opensAt.localeCompare(b.opensAt),
+        ),
+      );
+    }
+    const failed = results.length - created.length;
+    setHourMessage(
+      failed
+        ? `${created.length} días actualizados y ${failed} no pudieron guardarse por superposición.`
+        : "Franja aplicada de lunes a viernes.",
+    );
+    setSavingHour(false);
   }
 
   function removeHour(hour) {
@@ -270,6 +334,8 @@ export default function ScheduleManagementScreen() {
     >
       <View className="flex-row items-center px-5 pb-4 pt-3">
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Volver"
           onPress={() => router.back()}
           className="mr-4 h-11 w-11 items-center justify-center rounded-xl border border-[#30363D] bg-[#202428]"
         >
@@ -298,257 +364,334 @@ export default function ScheduleManagementScreen() {
             </View>
           )}
 
-          <View className="mb-5 rounded-3xl border border-[#30363D] bg-[#202428] p-4">
-            <Text className="text-lg font-semibold text-white">
-              Horario semanal
-            </Text>
-            <Text className="mb-4 mt-1 text-xs leading-5 text-[#8B949E]">
-              Estas franjas aplican a todas las canchas del complejo. Podés
-              tener varias por día, siempre que no se superpongan.
-            </Text>
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              className="mb-4"
-            >
-              {DAYS.map((day, index) => (
-                <Pressable
-                  key={day}
-                  onPress={() => setDayOfWeek(index + 1)}
-                  className={`mr-2 rounded-xl border px-4 py-3 ${
-                    dayOfWeek === index + 1
-                      ? "border-[#80D160] bg-[#2C4930]"
-                      : "border-[#3B4249] bg-[#292D32]"
-                  }`}
+          <View className="mb-5 flex-row rounded-2xl border border-[#30363D] bg-[#202428] p-1.5">
+            {[
+              ["hours", "Horario semanal"],
+              ["blocks", "Bloqueos"],
+            ].map(([value, label]) => (
+              <Pressable
+                key={value}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: activeSection === value }}
+                onPress={() => setActiveSection(value)}
+                className={`min-h-12 flex-1 items-center justify-center rounded-xl ${activeSection === value ? "bg-[#2C4930]" : ""}`}
+              >
+                <Text
+                  className={`font-semibold ${activeSection === value ? "text-[#80D160]" : "text-[#A9B1B8]"}`}
                 >
-                  <Text
-                    className={`font-semibold ${
+                  {label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          {activeSection === "hours" && (
+            <View className="mb-5 rounded-3xl border border-[#30363D] bg-[#202428] p-4">
+              <Text className="text-lg font-semibold text-white">
+                Horario semanal
+              </Text>
+              <Text className="mb-4 mt-1 text-xs leading-5 text-[#8B949E]">
+                Estas franjas aplican a todas las canchas del complejo. Podés
+                tener varias por día, siempre que no se superpongan.
+              </Text>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                className="mb-4"
+              >
+                {DAYS.map((day, index) => (
+                  <Pressable
+                    key={day}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: dayOfWeek === index + 1 }}
+                    accessibilityLabel={day}
+                    onPress={() => setDayOfWeek(index + 1)}
+                    className={`mr-2 rounded-xl border px-4 py-3 ${
                       dayOfWeek === index + 1
-                        ? "text-[#80D160]"
-                        : "text-[#A9B1B8]"
+                        ? "border-[#80D160] bg-[#2C4930]"
+                        : "border-[#3B4249] bg-[#292D32]"
                     }`}
                   >
-                    {day.slice(0, 3)}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
+                    <Text
+                      className={`font-semibold ${
+                        dayOfWeek === index + 1
+                          ? "text-[#80D160]"
+                          : "text-[#A9B1B8]"
+                      }`}
+                    >
+                      {day.slice(0, 3)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
 
-            <View className="flex-row gap-3">
-              <View className="flex-1">
-                <Text className="mb-2 text-xs text-[#A9B1B8]">Abre</Text>
-                <TextInput
-                  value={opensAt}
-                  onChangeText={setOpensAt}
-                  placeholder="08:00"
-                  placeholderTextColor="#69727B"
-                  className="h-12 rounded-xl border border-[#30363D] bg-[#17191C] px-4 text-white"
-                />
+              <View className="flex-row gap-3">
+                <View className="flex-1">
+                  <Text className="mb-2 text-xs text-[#A9B1B8]">Abre</Text>
+                  <TextInput
+                    accessibilityLabel="Hora de apertura"
+                    value={opensAt}
+                    onChangeText={(value) => {
+                      setOpensAt(value);
+                      setHourMessage("");
+                    }}
+                    placeholder="08:00"
+                    placeholderTextColor="#69727B"
+                    className="h-12 rounded-xl border border-[#30363D] bg-[#17191C] px-4 text-white"
+                  />
+                </View>
+                <View className="flex-1">
+                  <Text className="mb-2 text-xs text-[#A9B1B8]">Cierra</Text>
+                  <TextInput
+                    accessibilityLabel="Hora de cierre"
+                    value={closesAt}
+                    onChangeText={(value) => {
+                      setClosesAt(value);
+                      setHourMessage("");
+                    }}
+                    placeholder="23:00"
+                    placeholderTextColor="#69727B"
+                    className="h-12 rounded-xl border border-[#30363D] bg-[#17191C] px-4 text-white"
+                  />
+                </View>
               </View>
-              <View className="flex-1">
-                <Text className="mb-2 text-xs text-[#A9B1B8]">Cierra</Text>
-                <TextInput
-                  value={closesAt}
-                  onChangeText={setClosesAt}
-                  placeholder="23:00"
-                  placeholderTextColor="#69727B"
-                  className="h-12 rounded-xl border border-[#30363D] bg-[#17191C] px-4 text-white"
-                />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ disabled: savingHour }}
+                disabled={savingHour}
+                onPress={addHour}
+                className="mt-4 items-center rounded-xl bg-[#80D160] py-3.5"
+              >
+                <Text className="font-semibold text-[#152012]">
+                  {savingHour ? "Agregando..." : "Agregar franja"}
+                </Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ disabled: savingHour }}
+                disabled={savingHour}
+                onPress={copyHourToWeekdays}
+                className="mt-3 min-h-12 items-center justify-center rounded-xl border border-[#80D160]"
+              >
+                <Text className="font-semibold text-[#80D160]">
+                  Aplicar a lunes a viernes
+                </Text>
+              </Pressable>
+              {!!hourMessage && (
+                <Text
+                  accessibilityLiveRegion="polite"
+                  className="mt-3 text-sm leading-5 text-[#C5CBD1]"
+                >
+                  {hourMessage}
+                </Text>
+              )}
+
+              <View className="mt-5 border-t border-[#30363D] pt-4">
+                {hours.length === 0 ? (
+                  <Text className="text-sm text-[#8B949E]">
+                    Todavía no hay horarios configurados.
+                  </Text>
+                ) : (
+                  hours.map((hour) => (
+                    <View
+                      key={hour.id}
+                      className="mb-2 flex-row items-center rounded-xl bg-[#292D32] p-3"
+                    >
+                      <View className="flex-1">
+                        <Text className="font-semibold text-white">
+                          {DAYS[Number(hour.dayOfWeek) - 1]}
+                        </Text>
+                        <Text className="mt-1 text-sm text-[#A9B1B8]">
+                          {hour.opensAt.slice(0, 5)} –{" "}
+                          {hour.closesAt.slice(0, 5)}
+                        </Text>
+                      </View>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Eliminar horario del ${DAYS[Number(hour.dayOfWeek) - 1]}`}
+                        onPress={() => removeHour(hour)}
+                        className="h-10 w-10 items-center justify-center rounded-lg bg-[#2B2225]"
+                      >
+                        <Ionicons
+                          name="trash-outline"
+                          size={19}
+                          color="#F08A93"
+                        />
+                      </Pressable>
+                    </View>
+                  ))
+                )}
               </View>
             </View>
-            <Pressable
-              disabled={savingHour}
-              onPress={addHour}
-              className="mt-4 items-center rounded-xl bg-[#80D160] py-3.5"
-            >
-              <Text className="font-semibold text-[#152012]">
-                {savingHour ? "Agregando..." : "Agregar franja"}
-              </Text>
-            </Pressable>
+          )}
 
-            <View className="mt-5 border-t border-[#30363D] pt-4">
-              {hours.length === 0 ? (
-                <Text className="text-sm text-[#8B949E]">
-                  Todavía no hay horarios configurados.
+          {activeSection === "blocks" && (
+            <View className="rounded-3xl border border-[#30363D] bg-[#202428] p-4">
+              <Text className="text-lg font-semibold text-white">
+                Bloqueos puntuales
+              </Text>
+              <Text className="mb-4 mt-1 text-xs leading-5 text-[#8B949E]">
+                Para mantenimiento, eventos o cualquier período no reservable.
+              </Text>
+
+              {courts.length === 0 ? (
+                <Text className="text-sm text-[#F4C95D]">
+                  Creá una cancha antes de configurar bloqueos.
                 </Text>
               ) : (
-                hours.map((hour) => (
-                  <View
-                    key={hour.id}
-                    className="mb-2 flex-row items-center rounded-xl bg-[#292D32] p-3"
+                <>
+                  <Text className="mb-2 text-xs text-[#A9B1B8]">Cancha</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    className="mb-4"
                   >
+                    {courts.map((court) => (
+                      <Pressable
+                        key={court.id}
+                        accessibilityRole="radio"
+                        accessibilityState={{
+                          selected: selectedCourtId === court.id,
+                        }}
+                        onPress={() => setSelectedCourtId(court.id)}
+                        className={`mr-2 rounded-xl border px-4 py-3 ${
+                          selectedCourtId === court.id
+                            ? "border-[#80D160] bg-[#2C4930]"
+                            : "border-[#3B4249] bg-[#292D32]"
+                        }`}
+                      >
+                        <Text
+                          className={`font-semibold ${
+                            selectedCourtId === court.id
+                              ? "text-[#80D160]"
+                              : "text-[#A9B1B8]"
+                          }`}
+                        >
+                          {court.name}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+
+                  <Text className="mb-2 text-xs text-[#A9B1B8]">Fecha</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    className="mb-4"
+                  >
+                    {dates.map((date) => (
+                      <Pressable
+                        key={date}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected: blockDate === date }}
+                        onPress={() => setBlockDate(date)}
+                        className={`mr-2 rounded-xl border px-4 py-3 ${
+                          blockDate === date
+                            ? "border-[#80D160] bg-[#2C4930]"
+                            : "border-[#3B4249] bg-[#292D32]"
+                        }`}
+                      >
+                        <Text
+                          className={`font-semibold ${
+                            blockDate === date
+                              ? "text-[#80D160]"
+                              : "text-[#A9B1B8]"
+                          }`}
+                        >
+                          {dateLabel(date)}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+
+                  <View className="flex-row gap-3">
                     <View className="flex-1">
-                      <Text className="font-semibold text-white">
-                        {DAYS[Number(hour.dayOfWeek) - 1]}
+                      <Text className="mb-2 text-xs text-[#A9B1B8]">
+                        Inicio
                       </Text>
-                      <Text className="mt-1 text-sm text-[#A9B1B8]">
-                        {hour.opensAt.slice(0, 5)} – {hour.closesAt.slice(0, 5)}
-                      </Text>
-                    </View>
-                    <Pressable
-                      onPress={() => removeHour(hour)}
-                      className="h-10 w-10 items-center justify-center rounded-lg bg-[#2B2225]"
-                    >
-                      <Ionicons
-                        name="trash-outline"
-                        size={19}
-                        color="#F08A93"
+                      <TextInput
+                        accessibilityLabel="Hora de inicio del bloqueo"
+                        value={blockStart}
+                        onChangeText={setBlockStart}
+                        className="h-12 rounded-xl border border-[#30363D] bg-[#17191C] px-4 text-white"
                       />
-                    </Pressable>
+                    </View>
+                    <View className="flex-1">
+                      <Text className="mb-2 text-xs text-[#A9B1B8]">Fin</Text>
+                      <TextInput
+                        accessibilityLabel="Hora de fin del bloqueo"
+                        value={blockEnd}
+                        onChangeText={setBlockEnd}
+                        className="h-12 rounded-xl border border-[#30363D] bg-[#17191C] px-4 text-white"
+                      />
+                    </View>
                   </View>
-                ))
+                  <Text className="mb-2 mt-4 text-xs text-[#A9B1B8]">
+                    Motivo
+                  </Text>
+                  <TextInput
+                    accessibilityLabel="Motivo del bloqueo"
+                    value={blockReason}
+                    onChangeText={setBlockReason}
+                    placeholder="Ej.: mantenimiento"
+                    placeholderTextColor="#69727B"
+                    className="h-12 rounded-xl border border-[#30363D] bg-[#17191C] px-4 text-white"
+                  />
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: savingBlock }}
+                    disabled={savingBlock}
+                    onPress={addBlock}
+                    className="mt-4 items-center rounded-xl border border-[#F4C95D] bg-[#2A2517] py-3.5"
+                  >
+                    <Text className="font-semibold text-[#F4C95D]">
+                      {savingBlock ? "Bloqueando..." : "Crear bloqueo"}
+                    </Text>
+                  </Pressable>
+
+                  <View className="mt-5 border-t border-[#30363D] pt-4">
+                    {loadingBlocks ? (
+                      <ActivityIndicator color="#80D160" />
+                    ) : blocks.length === 0 ? (
+                      <Text className="text-sm text-[#8B949E]">
+                        Esta cancha no tiene bloqueos próximos.
+                      </Text>
+                    ) : (
+                      blocks.map((block) => (
+                        <View
+                          key={block.id}
+                          className="mb-2 flex-row items-center rounded-xl bg-[#292D32] p-3"
+                        >
+                          <View className="flex-1 pr-3">
+                            <Text className="font-semibold text-white">
+                              {block.reason}
+                            </Text>
+                            <Text className="mt-1 text-xs leading-5 text-[#A9B1B8]">
+                              {dateTimeLabel(block.startsAt)} – {"\n"}
+                              {dateTimeLabel(block.endsAt)}
+                            </Text>
+                          </View>
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={`Quitar bloqueo ${block.reason}`}
+                            onPress={() => removeBlock(block)}
+                            className="h-10 w-10 items-center justify-center rounded-lg bg-[#2B2225]"
+                          >
+                            <Ionicons
+                              name="trash-outline"
+                              size={19}
+                              color="#F08A93"
+                            />
+                          </Pressable>
+                        </View>
+                      ))
+                    )}
+                  </View>
+                </>
               )}
             </View>
-          </View>
-
-          <View className="rounded-3xl border border-[#30363D] bg-[#202428] p-4">
-            <Text className="text-lg font-semibold text-white">
-              Bloqueos puntuales
-            </Text>
-            <Text className="mb-4 mt-1 text-xs leading-5 text-[#8B949E]">
-              Para mantenimiento, eventos o cualquier período no reservable.
-            </Text>
-
-            {courts.length === 0 ? (
-              <Text className="text-sm text-[#F4C95D]">
-                Creá una cancha antes de configurar bloqueos.
-              </Text>
-            ) : (
-              <>
-                <Text className="mb-2 text-xs text-[#A9B1B8]">Cancha</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  className="mb-4"
-                >
-                  {courts.map((court) => (
-                    <Pressable
-                      key={court.id}
-                      onPress={() => setSelectedCourtId(court.id)}
-                      className={`mr-2 rounded-xl border px-4 py-3 ${
-                        selectedCourtId === court.id
-                          ? "border-[#80D160] bg-[#2C4930]"
-                          : "border-[#3B4249] bg-[#292D32]"
-                      }`}
-                    >
-                      <Text
-                        className={`font-semibold ${
-                          selectedCourtId === court.id
-                            ? "text-[#80D160]"
-                            : "text-[#A9B1B8]"
-                        }`}
-                      >
-                        {court.name}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-
-                <Text className="mb-2 text-xs text-[#A9B1B8]">Fecha</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  className="mb-4"
-                >
-                  {dates.map((date) => (
-                    <Pressable
-                      key={date}
-                      onPress={() => setBlockDate(date)}
-                      className={`mr-2 rounded-xl border px-4 py-3 ${
-                        blockDate === date
-                          ? "border-[#80D160] bg-[#2C4930]"
-                          : "border-[#3B4249] bg-[#292D32]"
-                      }`}
-                    >
-                      <Text
-                        className={`font-semibold ${
-                          blockDate === date
-                            ? "text-[#80D160]"
-                            : "text-[#A9B1B8]"
-                        }`}
-                      >
-                        {dateLabel(date)}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-
-                <View className="flex-row gap-3">
-                  <View className="flex-1">
-                    <Text className="mb-2 text-xs text-[#A9B1B8]">Inicio</Text>
-                    <TextInput
-                      value={blockStart}
-                      onChangeText={setBlockStart}
-                      className="h-12 rounded-xl border border-[#30363D] bg-[#17191C] px-4 text-white"
-                    />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="mb-2 text-xs text-[#A9B1B8]">Fin</Text>
-                    <TextInput
-                      value={blockEnd}
-                      onChangeText={setBlockEnd}
-                      className="h-12 rounded-xl border border-[#30363D] bg-[#17191C] px-4 text-white"
-                    />
-                  </View>
-                </View>
-                <Text className="mb-2 mt-4 text-xs text-[#A9B1B8]">Motivo</Text>
-                <TextInput
-                  value={blockReason}
-                  onChangeText={setBlockReason}
-                  placeholder="Ej.: mantenimiento"
-                  placeholderTextColor="#69727B"
-                  className="h-12 rounded-xl border border-[#30363D] bg-[#17191C] px-4 text-white"
-                />
-                <Pressable
-                  disabled={savingBlock}
-                  onPress={addBlock}
-                  className="mt-4 items-center rounded-xl border border-[#F4C95D] bg-[#2A2517] py-3.5"
-                >
-                  <Text className="font-semibold text-[#F4C95D]">
-                    {savingBlock ? "Bloqueando..." : "Crear bloqueo"}
-                  </Text>
-                </Pressable>
-
-                <View className="mt-5 border-t border-[#30363D] pt-4">
-                  {loadingBlocks ? (
-                    <ActivityIndicator color="#80D160" />
-                  ) : blocks.length === 0 ? (
-                    <Text className="text-sm text-[#8B949E]">
-                      Esta cancha no tiene bloqueos próximos.
-                    </Text>
-                  ) : (
-                    blocks.map((block) => (
-                      <View
-                        key={block.id}
-                        className="mb-2 flex-row items-center rounded-xl bg-[#292D32] p-3"
-                      >
-                        <View className="flex-1 pr-3">
-                          <Text className="font-semibold text-white">
-                            {block.reason}
-                          </Text>
-                          <Text className="mt-1 text-xs leading-5 text-[#A9B1B8]">
-                            {dateTimeLabel(block.startsAt)} – {"\n"}
-                            {dateTimeLabel(block.endsAt)}
-                          </Text>
-                        </View>
-                        <Pressable
-                          onPress={() => removeBlock(block)}
-                          className="h-10 w-10 items-center justify-center rounded-lg bg-[#2B2225]"
-                        >
-                          <Ionicons
-                            name="trash-outline"
-                            size={19}
-                            color="#F08A93"
-                          />
-                        </Pressable>
-                      </View>
-                    ))
-                  )}
-                </View>
-              </>
-            )}
-          </View>
+          )}
         </ScrollView>
       )}
     </SafeAreaView>

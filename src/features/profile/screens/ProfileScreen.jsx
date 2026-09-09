@@ -214,6 +214,24 @@ export default function ProfileScreen() {
         )}
 
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Abrir ayuda y privacidad"
+          className="mt-6 flex-row items-center rounded-2xl border border-[#30363D] bg-[#202428] px-4 py-4"
+          onPress={() => router.push("/help")}
+        >
+          <View className="mr-3 h-11 w-11 items-center justify-center rounded-xl bg-[#292D32]">
+            <Ionicons name="help-circle-outline" size={22} color="#80D160" />
+          </View>
+          <View className="flex-1">
+            <Text className="font-semibold text-white">Ayuda y privacidad</Text>
+            <Text className="mt-1 text-xs leading-4 text-[#8B949E]">
+              Reservas, pagos, Buscar rival y uso de tus datos
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#69727B" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
           className="mt-6 flex-row items-center justify-center rounded-xl border border-[#653B40] bg-[#2B2225] py-4"
           onPress={confirmSignOut}
         >

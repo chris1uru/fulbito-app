@@ -129,6 +129,8 @@ export default function VenueManagementScreen({ embeddedInTabs = false }) {
       <View className="flex-row items-center px-5 pb-4 pt-3">
         {!embeddedInTabs && (
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Volver"
             onPress={() => router.back()}
             className="mr-4 h-11 w-11 items-center justify-center rounded-xl border border-[#30363D] bg-[#202428]"
           >
@@ -147,6 +149,8 @@ export default function VenueManagementScreen({ embeddedInTabs = false }) {
         </View>
         {isAdmin && (
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Crear complejo"
             onPress={() =>
               router.push({
                 pathname: "/venueForm",

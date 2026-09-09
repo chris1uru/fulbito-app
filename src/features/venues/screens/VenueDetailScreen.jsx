@@ -237,6 +237,7 @@ export default function VenueDetailScreen() {
   const [availability, setAvailability] = useState(null);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityError, setAvailabilityError] = useState("");
+  const [availabilityRetry, setAvailabilityRetry] = useState(0);
   const [bookingSlot, setBookingSlot] = useState("");
   const [galleryVisible, setGalleryVisible] = useState(false);
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
@@ -336,7 +337,7 @@ export default function VenueDetailScreen() {
     return () => {
       active = false;
     };
-  }, [selectedCourtId, selectedDate]);
+  }, [availabilityRetry, selectedCourtId, selectedDate]);
 
   function reserve(slot) {
     if (!slot.available) return;
@@ -348,9 +349,10 @@ export default function VenueDetailScreen() {
       return;
     }
     const court = courts.find((item) => item.id === selectedCourtId);
+    const cancellationHours = venue?.cancellationNoticeHours ?? 4;
     Alert.alert(
       "Confirmar reserva",
-      `${court?.name}\n${dateLabel(selectedDate)} a las ${slotTime(slot.startsAt)}\n$ ${Number(court?.pricePerSlot).toLocaleString("es-UY")}`,
+      `${court?.name}\n${dateLabel(selectedDate)} a las ${slotTime(slot.startsAt)}\n$ ${Number(court?.pricePerSlot).toLocaleString("es-UY")}\n\nPodés cancelar sin quedar fuera de plazo hasta ${cancellationHours} horas antes. El pago se coordina con el complejo.`,
       [
         { text: "Cancelar", style: "cancel" },
         {
@@ -762,14 +764,16 @@ export default function VenueDetailScreen() {
                       onPress={() => selectCourtAt(index)}
                       accessibilityRole="button"
                       accessibilityLabel={`Ver ${court.name}`}
-                      className={`h-2 w-2 rounded-full ${
-                        index > 0 ? "ml-2" : ""
-                      } ${
-                        court.id === selectedCourtId
-                          ? "bg-[#80D160]"
-                          : "bg-[#3B4249]"
-                      }`}
-                    />
+                      className={`h-11 w-11 items-center justify-center rounded-full ${index > 0 ? "ml-1" : ""}`}
+                    >
+                      <View
+                        className={`h-2.5 w-2.5 rounded-full ${
+                          court.id === selectedCourtId
+                            ? "bg-[#80D160]"
+                            : "bg-[#3B4249]"
+                        }`}
+                      />
+                    </Pressable>
                   ))}
                 </View>
               )}
@@ -803,6 +807,9 @@ export default function VenueDetailScreen() {
                 {dates.map((date) => (
                   <Pressable
                     key={date}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Ver disponibilidad del ${dateLabel(date)}`}
+                    accessibilityState={{ selected: selectedDate === date }}
                     onPress={() => setSelectedDate(date)}
                     className={`mr-2 rounded-xl border px-4 py-3 ${
                       selectedDate === date
@@ -841,6 +848,15 @@ export default function VenueDetailScreen() {
                     <Text className="mt-2 text-center text-sm text-[#F08A93]">
                       {availabilityError}
                     </Text>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => setAvailabilityRetry((value) => value + 1)}
+                      className="mt-4 min-h-12 items-center justify-center rounded-xl border border-[#653B40] px-5"
+                    >
+                      <Text className="font-semibold text-[#F08A93]">
+                        Reintentar
+                      </Text>
+                    </Pressable>
                   </View>
                 ) : !availability?.slots?.length ? (
                   <Text className="text-center text-[#8B949E]">
@@ -855,6 +871,11 @@ export default function VenueDetailScreen() {
                       return (
                         <Pressable
                           key={slot.startsAt}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${slotTime(slot.startsAt)}, ${slot.available ? "disponible" : "ocupado"}`}
+                          accessibilityState={{
+                            disabled: !slot.available || !!bookingSlot,
+                          }}
                           disabled={!slot.available || !!bookingSlot}
                           onPress={() => reserve(slot)}
                           className={`mb-2 mr-2 min-w-[88px] items-center rounded-xl border px-3 py-3 ${
@@ -932,8 +953,10 @@ export default function VenueDetailScreen() {
       </ScrollView>
 
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Volver"
         onPress={() => router.back()}
-        className="absolute left-4 h-11 w-11 items-center justify-center rounded-xl border border-white/10"
+        className="absolute left-4 h-12 w-12 items-center justify-center rounded-xl border border-white/10"
         style={{ top: top + 10, backgroundColor: "rgba(23, 25, 28, 0.9)" }}
       >
         <Ionicons name="arrow-back" size={24} color="#FFFFFF" />

@@ -9,7 +9,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { AppAlert as Alert } from "../../../components/common/AppAlert";
 import { useAuth } from "../../../providers/AuthProvider";
 
 export default function LoginScreen() {
@@ -18,10 +17,12 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState("");
 
   async function handleLogin() {
+    setFormError("");
     if (!email.trim() || !password.trim()) {
-      Alert.alert("Faltan datos", "Ingresa tu correo y contraseña.");
+      setFormError("Ingresá tu correo y contraseña.");
       return;
     }
 
@@ -29,12 +30,12 @@ export default function LoginScreen() {
       setLoading(true);
       await signIn({ email: email.trim().toLowerCase(), password });
     } catch (error) {
-      Alert.alert("No se pudo iniciar sesión", error.message);
+      setFormError(error.message);
     } finally {
       setLoading(false);
     }
   }
- 
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#17191C" }}>
       <ScrollView
@@ -64,6 +65,7 @@ export default function LoginScreen() {
           <View className="mb-4 h-13 flex-row items-center rounded-xl border border-[#30363D] bg-[#17191C] px-4">
             <Ionicons name="mail-outline" size={19} color="#8B949E" />
             <TextInput
+              accessibilityLabel="Correo electrónico"
               className="h-full flex-1 px-3 text-white"
               placeholder="ejemplo@correo.com"
               placeholderTextColor="#69727B"
@@ -71,7 +73,11 @@ export default function LoginScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(value) => {
+                setEmail(value);
+                setFormError("");
+              }}
+              returnKeyType="next"
             />
           </View>
 
@@ -81,12 +87,18 @@ export default function LoginScreen() {
           <View className="mb-6 h-13 flex-row items-center rounded-xl border border-[#30363D] bg-[#17191C] px-4">
             <Ionicons name="lock-closed-outline" size={19} color="#8B949E" />
             <TextInput
+              accessibilityLabel="Contraseña"
               className="h-full flex-1 px-3 text-white"
               placeholder="••••••••"
               placeholderTextColor="#69727B"
               secureTextEntry={!isPasswordVisible}
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(value) => {
+                setPassword(value);
+                setFormError("");
+              }}
+              returnKeyType="done"
+              onSubmitEditing={handleLogin}
             />
             <TouchableOpacity
               accessibilityLabel={
@@ -104,7 +116,20 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
 
+          {!!formError && (
+            <View
+              accessibilityLiveRegion="assertive"
+              className="mb-4 rounded-xl border border-[#653B40] bg-[#2B2225] px-4 py-3"
+            >
+              <Text className="text-sm leading-5 text-[#F08A93]">
+                {formError}
+              </Text>
+            </View>
+          )}
+
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityState={{ disabled: loading }}
             className={`flex-row items-center justify-center rounded-xl bg-[#80D160] py-4 ${loading ? "opacity-60" : ""}`}
             disabled={loading}
             onPress={handleLogin}
@@ -116,10 +141,23 @@ export default function LoginScreen() {
               <Ionicons name="arrow-forward" size={18} color="#152012" />
             )}
           </TouchableOpacity>
+          <Link href="/help" asChild>
+            <TouchableOpacity
+              accessibilityRole="link"
+              className="mt-4 min-h-12 items-center justify-center"
+            >
+              <Text className="font-medium text-[#A9B1B8]">
+                Olvidé mi contraseña o necesito ayuda
+              </Text>
+            </TouchableOpacity>
+          </Link>
         </View>
 
         <Link href="/register" asChild>
-          <TouchableOpacity className="mt-6 items-center py-2">
+          <TouchableOpacity
+            accessibilityRole="link"
+            className="mt-6 min-h-12 items-center justify-center py-2"
+          >
             <Text className="text-[#A9B1B8]">
               ¿No tenés cuenta?{" "}
               <Text className="font-semibold text-[#80D160]">Registrate</Text>

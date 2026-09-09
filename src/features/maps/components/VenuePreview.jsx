@@ -20,6 +20,8 @@ export default function VenuePreview({
   selectedDate,
   selectedTime,
   onClose,
+  favorite,
+  onToggleFavorite,
 }) {
   const { bottom } = useSafeAreaInsets();
   const availableCourts = availability?.availableCourts ?? [];
@@ -57,12 +59,28 @@ export default function VenuePreview({
         accessibilityRole="button"
         accessibilityLabel="Cerrar detalle del complejo"
         onPress={onClose}
-        className="absolute right-3 top-3 z-10 h-9 w-9 items-center justify-center rounded-xl border border-[#3B4249] bg-[#17191C]"
+        className="absolute right-3 top-3 z-10 h-11 w-11 items-center justify-center rounded-xl border border-[#3B4249] bg-[#17191C]"
       >
         <Ionicons name="close" size={21} color="#FFFFFF" />
       </Pressable>
 
-      <View className="flex-row pr-10">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={
+          favorite ? "Quitar de favoritos" : "Guardar en favoritos"
+        }
+        accessibilityState={{ selected: favorite }}
+        onPress={onToggleFavorite}
+        className="absolute right-14 top-3 z-10 h-11 w-11 items-center justify-center rounded-xl border border-[#3B4249] bg-[#17191C]"
+      >
+        <Ionicons
+          name={favorite ? "star" : "star-outline"}
+          size={21}
+          color={favorite ? "#80D160" : "#FFFFFF"}
+        />
+      </Pressable>
+
+      <View className="flex-row pr-24">
         {venue.coverImageUrl ? (
           <Image
             source={{ uri: venue.coverImageUrl }}

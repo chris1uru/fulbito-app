@@ -1,7 +1,18 @@
 import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Platform, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  Text,
+  View,
+} from "react-native";
 import MapView, { Marker } from "react-native-maps";
+import useFavoriteVenues from "../../../hooks/useFavoriteVenues";
+import {
+  getMapSelection,
+  saveMapSelection,
+} from "../../../services/preferences";
 import { venuesApi } from "../../../services/api";
 import {
   addUruguayDays,
@@ -73,9 +84,26 @@ export default function MapsScreen() {
   const [selectedVenueId, setSelectedVenueId] = useState("");
   const [query, setQuery] = useState("");
   const [onlyAvailable, setOnlyAvailable] = useState(false);
+  const [onlyFavorites, setOnlyFavorites] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false);
+  const { favoriteVenueIds, toggleFavoriteVenue } = useFavoriteVenues();
+
+  useEffect(() => {
+    getMapSelection()
+      .then((saved) => {
+        if (saved?.date >= dateKey(new Date())) setSelection(saved);
+      })
+      .finally(() => setPreferencesLoaded(true));
+  }, []);
+
+  useEffect(() => {
+    if (preferencesLoaded) saveMapSelection(selection).catch(() => {});
+  }, [preferencesLoaded, selection]);
 
   useFocusEffect(
     useCallback(() => {
+      void reloadKey;
       let active = true;
       setVenuesError("");
       setVenuesLoading(true);
@@ -93,11 +121,12 @@ export default function MapsScreen() {
       return () => {
         active = false;
       };
-    }, []),
+    }, [reloadKey]),
   );
 
   useFocusEffect(
     useCallback(() => {
+      void reloadKey;
       let active = true;
       setAvailabilityError("");
       setAvailabilityResponse(null);
@@ -116,7 +145,7 @@ export default function MapsScreen() {
       return () => {
         active = false;
       };
-    }, [selection.date, selection.time]),
+    }, [reloadKey, selection.date, selection.time]),
   );
 
   const availabilityByVenue = useMemo(
@@ -138,9 +167,23 @@ export default function MapsScreen() {
         searchableVenueText(venue).includes(normalizedQuery);
       const availability = availabilityByVenue[venue.id];
       const matchesAvailability = !onlyAvailable || availability?.available;
-      return matchesQuery && matchesAvailability && coordinateOf(venue);
+      const matchesFavorite =
+        !onlyFavorites || favoriteVenueIds.includes(venue.id);
+      return (
+        matchesQuery &&
+        matchesAvailability &&
+        matchesFavorite &&
+        coordinateOf(venue)
+      );
     });
-  }, [availabilityByVenue, onlyAvailable, query, venues]);
+  }, [
+    availabilityByVenue,
+    favoriteVenueIds,
+    onlyAvailable,
+    onlyFavorites,
+    query,
+    venues,
+  ]);
 
   useEffect(() => {
     if (!query.trim() || visibleVenues.length === 0) return;
@@ -194,6 +237,8 @@ export default function MapsScreen() {
         onTimeChange={changeTime}
         onlyAvailable={onlyAvailable}
         onOnlyAvailableChange={setOnlyAvailable}
+        onlyFavorites={onlyFavorites}
+        onOnlyFavoritesChange={setOnlyFavorites}
       />
 
       <MapView ref={mapRef} style={{ flex: 1 }} initialRegion={INITIAL_REGION}>
@@ -234,15 +279,29 @@ export default function MapsScreen() {
           selectedDate={selection.date}
           selectedTime={selection.time}
           onClose={() => setSelectedVenueId("")}
+          favorite={favoriteVenueIds.includes(selectedVenue.id)}
+          onToggleFavorite={() => toggleFavoriteVenue(selectedVenue.id)}
         />
       )}
 
       {(venuesLoading || venuesError) && (
-        <View className="absolute bottom-6 self-center rounded-xl bg-[#17191C] px-4 py-3">
+        <View
+          accessibilityLiveRegion="assertive"
+          className="absolute bottom-6 self-center rounded-xl border border-[#30363D] bg-[#17191C] px-4 py-3"
+        >
           {venuesLoading ? (
             <ActivityIndicator color="#80D160" />
           ) : (
-            <Text className="text-[#F08A93]">{venuesError}</Text>
+            <View className="items-center">
+              <Text className="text-center text-[#F08A93]">{venuesError}</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setReloadKey((value) => value + 1)}
+                className="mt-3 min-h-12 items-center justify-center rounded-xl border border-[#653B40] px-5"
+              >
+                <Text className="font-semibold text-[#F08A93]">Reintentar</Text>
+              </Pressable>
+            </View>
           )}
         </View>
       )}

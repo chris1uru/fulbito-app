@@ -9,7 +9,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { AppAlert as Alert } from "../../../components/common/AppAlert";
 import CountryPhoneField, {
   phoneValidationMessage,
 } from "../../../components/common/CountryPhoneField";
@@ -29,38 +28,45 @@ export default function RegisterScreen() {
     email: "",
     phone: "",
     password: "",
+    confirmPassword: "",
   });
   const [loading, setLoading] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  function update(name, value) {
+    setForm((current) => ({ ...current, [name]: value }));
+    setErrors((current) => ({ ...current, [name]: "", form: "" }));
+  }
 
   async function register() {
-    if (
-      !form.firstName.trim() ||
-      !form.lastName.trim() ||
-      !form.email.trim() ||
-      form.password.length < 10
-    ) {
-      Alert.alert(
-        "Revisa los datos",
-        "Completa nombre, apellido, correo y una contraseña de al menos 10 caracteres.",
-      );
-      return;
-    }
+    const nextErrors = {};
+    if (!form.firstName.trim()) nextErrors.firstName = "Ingresá tu nombre.";
+    if (!form.lastName.trim()) nextErrors.lastName = "Ingresá tu apellido.";
+    if (!/^\S+@\S+\.\S+$/.test(form.email.trim()))
+      nextErrors.email = "Ingresá un correo válido.";
+    if (form.password.length < 10)
+      nextErrors.password = "Usá al menos 10 caracteres.";
+    if (form.confirmPassword !== form.password)
+      nextErrors.confirmPassword = "Las contraseñas no coinciden.";
     const phoneError = phoneValidationMessage(form.phone);
-    if (phoneError) {
-      Alert.alert("Teléfono inválido", phoneError);
+    if (phoneError) nextErrors.phone = phoneError;
+    if (Object.keys(nextErrors).length) {
+      setErrors(nextErrors);
       return;
     }
 
     try {
       setLoading(true);
       await signUp({
-        ...form,
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
         email: form.email.trim().toLowerCase(),
+        password: form.password,
         phone: form.phone.trim() || null,
       });
     } catch (error) {
-      Alert.alert("No se pudo crear la cuenta", error.message);
+      setErrors({ form: error.message });
     } finally {
       setLoading(false);
     }
@@ -106,10 +112,11 @@ export default function RegisterScreen() {
               <View className="h-13 flex-row items-center rounded-xl border border-[#30363D] bg-[#17191C] px-4">
                 <Ionicons name={icon} size={19} color="#8B949E" />
                 <TextInput
+                  accessibilityLabel={label}
                   className="h-full flex-1 px-3 text-white"
                   placeholderTextColor="#69727B"
                   value={form[name]}
-                  onChangeText={(value) => setForm({ ...form, [name]: value })}
+                  onChangeText={(value) => update(name, value)}
                   autoCapitalize={name === "email" ? "none" : "sentences"}
                   keyboardType={
                     name === "email"
@@ -120,14 +127,21 @@ export default function RegisterScreen() {
                   }
                 />
               </View>
+              {!!errors[name] && (
+                <Text
+                  accessibilityLiveRegion="polite"
+                  className="mt-2 text-xs text-[#F08A93]"
+                >
+                  {errors[name]}
+                </Text>
+              )}
             </View>
           ))}
 
           <CountryPhoneField
             value={form.phone}
-            onChangeText={(phone) =>
-              setForm((current) => ({ ...current, phone }))
-            }
+            onChangeText={(phone) => update("phone", phone)}
+            error={errors.phone}
           />
 
           <View className="mb-4">
@@ -137,13 +151,12 @@ export default function RegisterScreen() {
             <View className="h-13 flex-row items-center rounded-xl border border-[#30363D] bg-[#17191C] px-4">
               <Ionicons name="lock-closed-outline" size={19} color="#8B949E" />
               <TextInput
+                accessibilityLabel="Contraseña"
                 className="h-full flex-1 px-3 text-white"
                 placeholder="Contraseña"
                 placeholderTextColor="#69727B"
                 value={form.password}
-                onChangeText={(password) =>
-                  setForm((current) => ({ ...current, password }))
-                }
+                onChangeText={(password) => update("password", password)}
                 autoCapitalize="none"
                 secureTextEntry={!isPasswordVisible}
               />
@@ -151,7 +164,9 @@ export default function RegisterScreen() {
                 onPress={() => setIsPasswordVisible((current) => !current)}
                 accessibilityRole="button"
                 accessibilityLabel={
-                  isPasswordVisible ? "Ocultar contraseña" : "Mostrar contraseña"
+                  isPasswordVisible
+                    ? "Ocultar contraseña"
+                    : "Mostrar contraseña"
                 }
               >
                 <Ionicons
@@ -164,9 +179,59 @@ export default function RegisterScreen() {
             <Text className="mt-2 text-xs text-[#8B949E]">
               Mínimo 10 caracteres
             </Text>
+            {!!errors.password && (
+              <Text
+                accessibilityLiveRegion="polite"
+                className="mt-2 text-xs text-[#F08A93]"
+              >
+                {errors.password}
+              </Text>
+            )}
           </View>
 
+          <View className="mb-4">
+            <Text className="mb-2 text-sm font-medium text-[#C5CBD1]">
+              Repetir contraseña
+            </Text>
+            <View
+              className={`h-13 flex-row items-center rounded-xl border bg-[#17191C] px-4 ${errors.confirmPassword ? "border-[#F08A93]" : "border-[#30363D]"}`}
+            >
+              <Ionicons name="lock-closed-outline" size={19} color="#8B949E" />
+              <TextInput
+                accessibilityLabel="Repetir contraseña"
+                className="h-full flex-1 px-3 text-white"
+                placeholder="Repetí la contraseña"
+                placeholderTextColor="#69727B"
+                value={form.confirmPassword}
+                onChangeText={(value) => update("confirmPassword", value)}
+                autoCapitalize="none"
+                secureTextEntry={!isPasswordVisible}
+                returnKeyType="done"
+                onSubmitEditing={register}
+              />
+            </View>
+            {!!errors.confirmPassword && (
+              <Text
+                accessibilityLiveRegion="polite"
+                className="mt-2 text-xs text-[#F08A93]"
+              >
+                {errors.confirmPassword}
+              </Text>
+            )}
+          </View>
+
+          {!!errors.form && (
+            <View
+              accessibilityLiveRegion="assertive"
+              className="mb-4 rounded-xl border border-[#653B40] bg-[#2B2225] px-4 py-3"
+            >
+              <Text className="text-sm text-[#F08A93]">{errors.form}</Text>
+            </View>
+          )}
+
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityState={{ disabled: loading }}
             className={`mt-2 flex-row items-center justify-center rounded-xl bg-[#80D160] py-4 ${loading ? "opacity-60" : ""}`}
             disabled={loading}
             onPress={register}
@@ -181,7 +246,10 @@ export default function RegisterScreen() {
         </View>
 
         <Link href="/loginScreen" asChild>
-          <TouchableOpacity className="mt-6 items-center py-2">
+          <TouchableOpacity
+            accessibilityRole="link"
+            className="mt-6 min-h-12 items-center justify-center py-2"
+          >
             <Text className="text-[#A9B1B8]">
               ¿Ya tenés cuenta?{" "}
               <Text className="font-semibold text-[#80D160]">

@@ -26,7 +26,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="maps"
         options={{
-          title: "Map",
+          title: "Mapa",
           href: isOwner ? null : undefined,
           tabBarIcon: ({ color, size }) => (
             <MapsIcon color={color} size={size} />

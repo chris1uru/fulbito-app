@@ -220,7 +220,9 @@ function splitPhone(value) {
     .find((country) => normalized.startsWith(country.dialCode));
   return {
     country: match ?? DEFAULT_COUNTRY,
-    nationalNumber: match ? normalized.slice(match.dialCode.length) : digits(normalized),
+    nationalNumber: match
+      ? normalized.slice(match.dialCode.length)
+      : digits(normalized),
   };
 }
 
@@ -241,6 +243,7 @@ export default function CountryPhoneField({
   label = "Teléfono",
   value,
   onChangeText,
+  error,
 }) {
   const initial = splitPhone(value);
   const [country, setCountry] = useState(initial.country);
@@ -273,7 +276,9 @@ export default function CountryPhoneField({
   return (
     <View className="mb-4">
       <Text className="mb-2 text-sm font-medium text-[#C5CBD1]">{label}</Text>
-      <View className="h-13 flex-row items-center rounded-xl border border-[#30363D] bg-[#17191C] px-3">
+      <View
+        className={`h-13 flex-row items-center rounded-xl border bg-[#17191C] px-3 ${error ? "border-[#F08A93]" : "border-[#30363D]"}`}
+      >
         <Pressable
           onPress={() => setPickerVisible(true)}
           className="flex-row items-center border-r border-[#30363D] pr-3"
@@ -284,6 +289,8 @@ export default function CountryPhoneField({
           <Ionicons name="chevron-down" size={16} color="#A9B1B8" />
         </Pressable>
         <TextInput
+          accessibilityLabel={label}
+          accessibilityHint="Ingresá el número sin el código de país"
           value={nationalNumber}
           onChangeText={updateNumber}
           keyboardType="phone-pad"
@@ -301,6 +308,14 @@ export default function CountryPhoneField({
           className="h-full flex-1 px-3 text-white"
         />
       </View>
+      {!!error && (
+        <Text
+          accessibilityLiveRegion="polite"
+          className="mt-2 text-xs text-[#F08A93]"
+        >
+          {error}
+        </Text>
+      )}
 
       <Modal
         visible={pickerVisible}
@@ -309,17 +324,30 @@ export default function CountryPhoneField({
         onRequestClose={() => setPickerVisible(false)}
       >
         <View className="flex-1 justify-end bg-black/70">
-          <Pressable className="flex-1" onPress={() => setPickerVisible(false)} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Cerrar selector de país"
+            className="flex-1"
+            onPress={() => setPickerVisible(false)}
+          />
           <View className="h-[70%] rounded-t-3xl bg-[#202428] px-5 pb-6 pt-5">
             <View className="mb-4 flex-row items-center justify-between">
-              <Text className="text-xl font-bold text-white">Código de país</Text>
-              <Pressable onPress={() => setPickerVisible(false)} className="p-2">
+              <Text className="text-xl font-bold text-white">
+                Código de país
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Cerrar selector de país"
+                onPress={() => setPickerVisible(false)}
+                className="min-h-12 min-w-12 items-center justify-center"
+              >
                 <Ionicons name="close" size={22} color="#FFFFFF" />
               </Pressable>
             </View>
             <View className="mb-3 flex-row items-center rounded-xl bg-[#17191C] px-3">
               <Ionicons name="search-outline" size={18} color="#8B949E" />
               <TextInput
+                accessibilityLabel="Buscar país o código"
                 value={query}
                 onChangeText={setQuery}
                 placeholder="Buscar país o código"
@@ -330,15 +358,21 @@ export default function CountryPhoneField({
             </View>
             <FlatList
               data={visibleCountries}
-              keyExtractor={(item, index) => `${item.name}-${item.dialCode}-${index}`}
+              keyExtractor={(item, index) =>
+                `${item.name}-${item.dialCode}-${index}`
+              }
               keyboardShouldPersistTaps="handled"
               renderItem={({ item }) => (
                 <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Elegir ${item.name}, código ${item.dialCode}`}
                   onPress={() => chooseCountry(item)}
                   className="flex-row items-center justify-between border-b border-[#30363D] py-4"
                 >
                   <Text className="text-base text-white">{item.name}</Text>
-                  <Text className="font-semibold text-[#80D160]">{item.dialCode}</Text>
+                  <Text className="font-semibold text-[#80D160]">
+                    {item.dialCode}
+                  </Text>
                 </Pressable>
               )}
             />

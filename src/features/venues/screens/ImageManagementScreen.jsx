@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -54,6 +54,8 @@ export default function ImageManagementScreen() {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
+  const [failedAssets, setFailedAssets] = useState([]);
+  const cancelRequested = useRef(false);
 
   const load = useCallback(async () => {
     if (!targetId) {
@@ -81,6 +83,72 @@ export default function ImageManagementScreen() {
     }, [load]),
   );
 
+  async function uploadAssets(selected) {
+    const nextOrder = images.reduce(
+      (highest, image) => Math.max(highest, Number(image.sortOrder) + 1),
+      0,
+    );
+    let uploadedCount = images.length;
+    const failures = [];
+
+    cancelRequested.current = false;
+    setFailedAssets([]);
+    setUploading(true);
+    try {
+      for (const [index, asset] of selected.entries()) {
+        if (cancelRequested.current) {
+          failures.push(
+            ...selected.slice(index).map((pendingAsset) => ({
+              asset: pendingAsset,
+              message: "Carga pausada",
+            })),
+          );
+          break;
+        }
+        try {
+          setProgress(`Preparando ${index + 1} de ${selected.length}...`);
+          const optimized = await optimizeImage(asset);
+          const preparation = isVenue
+            ? await imagesApi.prepareVenue(targetId)
+            : await imagesApi.prepareCourt(targetId);
+
+          setProgress(`Subiendo ${index + 1} de ${selected.length}...`);
+          const proof = await uploadToCloudinary(preparation, optimized);
+          const request = {
+            ...proof,
+            sortOrder: nextOrder + uploadedCount - images.length,
+            ...(isVenue ? { cover: uploadedCount === 0 } : {}),
+          };
+
+          if (isVenue) await imagesApi.addVenue(targetId, request);
+          else await imagesApi.addCourt(targetId, request);
+          uploadedCount += 1;
+        } catch (uploadError) {
+          failures.push({ asset, message: uploadError.message });
+        }
+      }
+
+      await load();
+      setFailedAssets(failures);
+      const completed = selected.length - failures.length;
+      if (failures.length) {
+        Alert.alert(
+          cancelRequested.current ? "Carga pausada" : "Carga incompleta",
+          `${completed} ${completed === 1 ? "foto quedó guardada" : "fotos quedaron guardadas"}. Podés reintentar las ${failures.length} pendientes sin volver a elegirlas.`,
+        );
+      } else {
+        Alert.alert(
+          selected.length === 1 ? "Foto subida" : "Fotos subidas",
+          `${selected.length} ${selected.length === 1 ? "imagen quedó" : "imágenes quedaron"} disponibles.`,
+        );
+      }
+    } finally {
+      setUploading(false);
+      setProgress("");
+      cancelRequested.current = false;
+    }
+  }
+
   async function chooseAndUpload() {
     const remaining = maximum - images.length;
     if (remaining <= 0) {
@@ -99,48 +167,7 @@ export default function ImageManagementScreen() {
       quality: 1,
     });
     if (result.canceled || !result.assets?.length) return;
-
-    const selected = result.assets.slice(0, remaining);
-    const nextOrder = images.reduce(
-      (highest, image) => Math.max(highest, Number(image.sortOrder) + 1),
-      0,
-    );
-    let uploadedCount = images.length;
-
-    setUploading(true);
-    try {
-      for (const [index, asset] of selected.entries()) {
-        setProgress(`Preparando foto ${index + 1} de ${selected.length}...`);
-        const optimized = await optimizeImage(asset);
-        const preparation = isVenue
-          ? await imagesApi.prepareVenue(targetId)
-          : await imagesApi.prepareCourt(targetId);
-
-        setProgress(`Subiendo foto ${index + 1} de ${selected.length}...`);
-        const proof = await uploadToCloudinary(preparation, optimized);
-        const request = {
-          ...proof,
-          sortOrder: nextOrder + index,
-          ...(isVenue ? { cover: uploadedCount === 0 } : {}),
-        };
-
-        if (isVenue) await imagesApi.addVenue(targetId, request);
-        else await imagesApi.addCourt(targetId, request);
-        uploadedCount += 1;
-      }
-
-      await load();
-      Alert.alert(
-        selected.length === 1 ? "Foto subida" : "Fotos subidas",
-        `${selected.length} ${selected.length === 1 ? "imagen quedó" : "imágenes quedaron"} disponible${selected.length === 1 ? "" : "s"}.`,
-      );
-    } catch (uploadError) {
-      await load();
-      Alert.alert("No se pudo completar la subida", uploadError.message);
-    } finally {
-      setUploading(false);
-      setProgress("");
-    }
+    await uploadAssets(result.assets.slice(0, remaining));
   }
 
   function confirmDelete(image) {
@@ -175,6 +202,25 @@ export default function ImageManagementScreen() {
     }
   }
 
+  async function moveImage(image, nextIndex) {
+    if (nextIndex < 0 || nextIndex >= images.length || uploading) return;
+    const previous = images;
+    const optimistic = [...images];
+    const currentIndex = optimistic.findIndex((value) => value.id === image.id);
+    optimistic.splice(currentIndex, 1);
+    optimistic.splice(nextIndex, 0, image);
+    setImages(optimistic);
+    try {
+      const values = isVenue
+        ? await imagesApi.reorderVenue(image.id, nextIndex)
+        : await imagesApi.reorderCourt(image.id, nextIndex);
+      setImages([...values].sort((a, b) => a.sortOrder - b.sortOrder));
+    } catch (requestError) {
+      setImages(previous);
+      Alert.alert("No se pudo cambiar el orden", requestError.message);
+    }
+  }
+
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: "#17191C" }}
@@ -182,6 +228,9 @@ export default function ImageManagementScreen() {
     >
       <View className="flex-row items-center px-5 pb-4 pt-3">
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Volver"
+          accessibilityState={{ disabled: uploading }}
           onPress={() => router.back()}
           disabled={uploading}
           className="mr-4 h-11 w-11 items-center justify-center rounded-xl border border-[#30363D] bg-[#202428]"
@@ -206,11 +255,58 @@ export default function ImageManagementScreen() {
           <Ionicons name="alert-circle-outline" size={40} color="#F08A93" />
           <Text className="mt-4 text-center text-white">{error}</Text>
           <Pressable
+            accessibilityRole="button"
+            accessibilityState={{
+              disabled: uploading || images.length >= maximum,
+            }}
             onPress={() => load()}
             className="mt-5 rounded-xl bg-[#80D160] px-5 py-3"
           >
             <Text className="font-semibold text-[#152012]">Reintentar</Text>
           </Pressable>
+
+          {uploading && (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                cancelRequested.current = true;
+                setProgress("Deteniendo después de esta foto...");
+              }}
+              className="mt-3 min-h-12 items-center justify-center rounded-xl border border-[#653B40] bg-[#2B2225]"
+            >
+              <Text className="font-semibold text-[#F08A93]">
+                Detener carga
+              </Text>
+            </Pressable>
+          )}
+
+          {!uploading && failedAssets.length > 0 && (
+            <View
+              accessibilityLiveRegion="polite"
+              className="mt-3 rounded-2xl border border-[#653B40] bg-[#2B2225] p-4"
+            >
+              <Text className="font-semibold text-white">
+                {failedAssets.length}{" "}
+                {failedAssets.length === 1
+                  ? "foto pendiente"
+                  : "fotos pendientes"}
+              </Text>
+              <Text className="mt-1 text-sm leading-5 text-[#F08A93]">
+                Las fotos ya guardadas no se volverán a subir.
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() =>
+                  uploadAssets(failedAssets.map((item) => item.asset))
+                }
+                className="mt-3 min-h-12 items-center justify-center rounded-xl bg-[#80D160]"
+              >
+                <Text className="font-semibold text-[#152012]">
+                  Reintentar pendientes
+                </Text>
+              </Pressable>
+            </View>
+          )}
         </View>
       ) : (
         <ScrollView contentContainerClassName="px-5 pb-12">
@@ -300,6 +396,8 @@ export default function ImageManagementScreen() {
 
                     {isVenue && !image.cover && (
                       <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Usar foto ${index + 1} como portada`}
                         onPress={() => setCover(image)}
                         disabled={uploading}
                         className="mt-3 flex-row items-center"
@@ -315,7 +413,40 @@ export default function ImageManagementScreen() {
                       </Pressable>
                     )}
 
+                    <View className="mt-3 flex-row gap-2">
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Mover foto ${index + 1} hacia atrás`}
+                        accessibilityState={{
+                          disabled: uploading || index === 0,
+                        }}
+                        disabled={uploading || index === 0}
+                        onPress={() => moveImage(image, index - 1)}
+                        className={`h-11 flex-1 items-center justify-center rounded-lg border border-[#3B4249] ${index === 0 ? "opacity-40" : ""}`}
+                      >
+                        <Ionicons name="arrow-back" size={17} color="#C5CBD1" />
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Mover foto ${index + 1} hacia adelante`}
+                        accessibilityState={{
+                          disabled: uploading || index === images.length - 1,
+                        }}
+                        disabled={uploading || index === images.length - 1}
+                        onPress={() => moveImage(image, index + 1)}
+                        className={`h-11 flex-1 items-center justify-center rounded-lg border border-[#3B4249] ${index === images.length - 1 ? "opacity-40" : ""}`}
+                      >
+                        <Ionicons
+                          name="arrow-forward"
+                          size={17}
+                          color="#C5CBD1"
+                        />
+                      </Pressable>
+                    </View>
+
                     <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Eliminar foto ${index + 1}`}
                       onPress={() => confirmDelete(image)}
                       disabled={uploading}
                       className="mt-3 flex-row items-center"

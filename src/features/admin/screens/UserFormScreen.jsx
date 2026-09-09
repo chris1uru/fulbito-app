@@ -25,11 +25,13 @@ function Field({
   keyboardType,
   secureTextEntry,
   placeholder,
+  error,
 }) {
   return (
     <View className="mb-4">
       <Text className="mb-2 text-sm font-medium text-[#C5CBD1]">{label}</Text>
       <TextInput
+        accessibilityLabel={label}
         value={value}
         onChangeText={onChangeText}
         keyboardType={keyboardType}
@@ -37,8 +39,16 @@ function Field({
         autoCapitalize={keyboardType === "email-address" ? "none" : "sentences"}
         placeholder={placeholder}
         placeholderTextColor="#69727B"
-        className="h-13 rounded-xl border border-[#30363D] bg-[#17191C] px-4 text-white"
+        className={`h-13 rounded-xl border bg-[#17191C] px-4 text-white ${error ? "border-[#F08A93]" : "border-[#30363D]"}`}
       />
+      {!!error && (
+        <Text
+          accessibilityLiveRegion="polite"
+          className="mt-2 text-xs text-[#F08A93]"
+        >
+          {error}
+        </Text>
+      )}
     </View>
   );
 }
@@ -47,23 +57,28 @@ export default function UserFormScreen() {
   const router = useRouter();
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState({});
 
   function update(name, value) {
     setForm((current) => ({ ...current, [name]: value }));
+    setErrors((current) => ({ ...current, [name]: "", form: "" }));
   }
 
   async function save() {
     const nationalId = form.nationalId.replace(/\D/g, "");
-    if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim()) {
-      Alert.alert("Faltan datos", "Completá nombre, apellido y email.");
-      return;
-    }
-    if (nationalId.length < 7 || nationalId.length > 8) {
-      Alert.alert("Cédula inválida", "Ingresá una cédula de 7 u 8 dígitos.");
-      return;
-    }
-    if (form.password.length < 10) {
-      Alert.alert("Contraseña inválida", "Debe tener al menos 10 caracteres.");
+    const nextErrors = {};
+    if (!form.firstName.trim()) nextErrors.firstName = "Ingresá el nombre.";
+    if (!form.lastName.trim()) nextErrors.lastName = "Ingresá el apellido.";
+    if (!/^\S+@\S+\.\S+$/.test(form.email.trim()))
+      nextErrors.email = "Ingresá un email válido.";
+    if (nationalId.length < 7 || nationalId.length > 8)
+      nextErrors.nationalId = "Ingresá una cédula de 7 u 8 dígitos.";
+    const phoneError = phoneValidationMessage(form.phone.trim());
+    if (phoneError) nextErrors.phone = phoneError;
+    if (form.password.length < 10)
+      nextErrors.password = "Usá al menos 10 caracteres.";
+    if (Object.keys(nextErrors).length) {
+      setErrors(nextErrors);
       return;
     }
 
@@ -84,7 +99,7 @@ export default function UserFormScreen() {
         [{ text: "Aceptar", onPress: () => router.back() }],
       );
     } catch (requestError) {
-      Alert.alert("No se pudo crear", requestError.message);
+      setErrors({ form: requestError.message });
     } finally {
       setSaving(false);
     }
@@ -97,6 +112,8 @@ export default function UserFormScreen() {
     >
       <View className="flex-row items-center px-5 pb-4 pt-3">
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Volver"
           onPress={() => router.back()}
           className="mr-4 h-11 w-11 items-center justify-center rounded-xl border border-[#30363D] bg-[#202428]"
         >
@@ -137,11 +154,13 @@ export default function UserFormScreen() {
             label="Nombre"
             value={form.firstName}
             onChangeText={(value) => update("firstName", value)}
+            error={errors.firstName}
           />
           <Field
             label="Apellido"
             value={form.lastName}
             onChangeText={(value) => update("lastName", value)}
+            error={errors.lastName}
           />
           <Field
             label="Email"
@@ -149,6 +168,7 @@ export default function UserFormScreen() {
             onChangeText={(value) => update("email", value)}
             keyboardType="email-address"
             placeholder="dueño@complejo.com"
+            error={errors.email}
           />
           <Field
             label="Cédula"
@@ -156,12 +176,12 @@ export default function UserFormScreen() {
             onChangeText={(value) => update("nationalId", value)}
             keyboardType="number-pad"
             placeholder="12345678"
+            error={errors.nationalId}
           />
           <CountryPhoneField
             value={form.phone}
-            onChangeText={(phone) =>
-              setForm((current) => ({ ...current, phone }))
-            }
+            onChangeText={(phone) => update("phone", phone)}
+            error={errors.phone}
           />
           <Field
             label="Contraseña temporal"
@@ -169,10 +189,22 @@ export default function UserFormScreen() {
             onChangeText={(value) => update("password", value)}
             secureTextEntry
             placeholder="Mínimo 10 caracteres"
+            error={errors.password}
           />
         </View>
 
+        {!!errors.form && (
+          <View
+            accessibilityLiveRegion="assertive"
+            className="mt-4 rounded-xl border border-[#653B40] bg-[#2B2225] p-4"
+          >
+            <Text className="text-sm text-[#F08A93]">{errors.form}</Text>
+          </View>
+        )}
+
         <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: saving }}
           disabled={saving}
           onPress={save}
           className={`mt-5 items-center rounded-xl bg-[#80D160] py-4 ${saving ? "opacity-60" : ""}`}

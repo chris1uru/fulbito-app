@@ -4,6 +4,7 @@ import {
   FlatList,
   Keyboard,
   Modal,
+  Platform,
   Pressable,
   Text,
   TextInput,
@@ -130,11 +131,16 @@ function TimeDropdown({
             left: anchor.x,
             width: anchor.width,
             maxHeight: 244,
-            elevation: 20,
-            shadowColor: "#000000",
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.28,
-            shadowRadius: 14,
+            ...Platform.select({
+              web: { boxShadow: "0 8px 14px rgba(0, 0, 0, 0.28)" },
+              default: {
+                elevation: 20,
+                shadowColor: "#000000",
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.28,
+                shadowRadius: 14,
+              },
+            }),
           }}
         >
           <FlatList
@@ -196,6 +202,8 @@ export default function MapsHeader({
   onTimeChange,
   onlyAvailable,
   onOnlyAvailableChange,
+  onlyFavorites,
+  onOnlyFavoritesChange,
 }) {
   const timeButtonRef = useRef(null);
   const [timeDropdownOpen, setTimeDropdownOpen] = useState(false);
@@ -258,10 +266,10 @@ export default function MapsHeader({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Filtrar complejos"
-            accessibilityState={{ selected: onlyAvailable }}
+            accessibilityState={{ selected: onlyAvailable || onlyFavorites }}
             onPress={() => setFilterModalOpen(true)}
             className={`h-12 w-12 items-center justify-center rounded-xl border ${
-              onlyAvailable
+              onlyAvailable || onlyFavorites
                 ? "border-[#80D160] bg-[#2C4930]"
                 : "border-[#30363D] bg-[#202428]"
             }`}
@@ -464,6 +472,8 @@ export default function MapsHeader({
           const selected = option.value === onlyAvailable;
           return (
             <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
               key={String(option.value)}
               onPress={() => {
                 onOnlyAvailableChange(option.value);
@@ -489,6 +499,29 @@ export default function MapsHeader({
             </Pressable>
           );
         })}
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: onlyFavorites }}
+          onPress={() => onOnlyFavoritesChange(!onlyFavorites)}
+          className={`mb-3 flex-row items-center rounded-2xl border p-4 ${
+            onlyFavorites
+              ? "border-[#80D160] bg-[#2C4930]"
+              : "border-[#30363D] bg-[#202428]"
+          }`}
+        >
+          <View className="flex-1">
+            <Text className="font-semibold text-white">Sólo favoritos</Text>
+            <Text className="mt-1 text-xs leading-5 text-[#A9B1B8]">
+              Muestra únicamente los complejos que guardaste en este
+              dispositivo.
+            </Text>
+          </View>
+          <Ionicons
+            name={onlyFavorites ? "star" : "star-outline"}
+            size={22}
+            color={onlyFavorites ? "#80D160" : "#69727B"}
+          />
+        </Pressable>
       </BottomModal>
     </>
   );

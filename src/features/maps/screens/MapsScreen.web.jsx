@@ -82,14 +82,17 @@ export default function MapsScreenWeb() {
   const [venues, setVenues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
+    setLoading(true);
+    setError("");
     venuesApi
       .publicList()
       .then(setVenues)
       .catch((requestError) => setError(requestError.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [reloadKey]);
 
   return (
     <View style={{ flex: 1, backgroundColor: "#080B0D" }}>
@@ -119,6 +122,13 @@ export default function MapsScreenWeb() {
         ) : error ? (
           <View className="rounded-2xl border border-[#653B40] bg-[#2B2225] p-5">
             <Text className="text-center text-[#F08A93]">{error}</Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setReloadKey((value) => value + 1)}
+              className="mt-4 min-h-12 items-center justify-center rounded-xl border border-[#653B40]"
+            >
+              <Text className="font-semibold text-[#F08A93]">Reintentar</Text>
+            </Pressable>
           </View>
         ) : venues.length === 0 ? (
           <View className="items-center rounded-3xl border border-dashed border-[#3B4249] bg-[#202428] px-6 py-12">

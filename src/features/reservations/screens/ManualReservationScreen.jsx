@@ -57,6 +57,7 @@ function FormField({ label, value, onChangeText, ...props }) {
     <View className="mb-4">
       <Text className="mb-2 text-sm font-medium text-[#C5CBD1]">{label}</Text>
       <TextInput
+        accessibilityLabel={label}
         value={value}
         onChangeText={onChangeText}
         placeholderTextColor="#69727B"
@@ -97,6 +98,8 @@ export default function ManualReservationScreen() {
   const [availabilityError, setAvailabilityError] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [availabilityRetry, setAvailabilityRetry] = useState(0);
+  const [formError, setFormError] = useState("");
 
   useEffect(() => {
     const loadVenues =
@@ -178,7 +181,7 @@ export default function ManualReservationScreen() {
     return () => {
       active = false;
     };
-  }, [selectedCourtId, selectedDate, today]);
+  }, [availabilityRetry, selectedCourtId, selectedDate, today]);
 
   const selectedVenue = venues.find((venue) => venue.id === selectedVenueId);
   const selectedCourt = courts.find((court) => court.id === selectedCourtId);
@@ -207,25 +210,19 @@ export default function ManualReservationScreen() {
   }
 
   function confirmReservation() {
+    setFormError("");
     if (!selectedVenue || !selectedCourt || !selectedSlot) {
-      Alert.alert(
-        "Falta seleccionar el turno",
-        "Elegí complejo, cancha, fecha y horario.",
-      );
+      setFormError("Elegí complejo, cancha, fecha y horario.");
       return;
     }
     if (!playerName.trim()) {
-      Alert.alert(
-        "Falta el jugador",
-        "Ingresá el nombre de la persona que reservó.",
-      );
+      setFormError("Ingresá el nombre de la persona que reservó.");
       return;
     }
     const cleanPhone = playerPhone.trim();
     if (cleanPhone && !/^\+[1-9][0-9]{7,14}$/.test(cleanPhone)) {
-      Alert.alert(
-        "Teléfono inválido",
-        "Usá formato internacional, por ejemplo +59899123456.",
+      setFormError(
+        "Usá el teléfono en formato internacional, por ejemplo +59899123456.",
       );
       return;
     }
@@ -260,6 +257,8 @@ export default function ManualReservationScreen() {
     >
       <View className="flex-row items-center px-5 pb-4 pt-3">
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Volver"
           onPress={() => router.back()}
           className="mr-4 h-11 w-11 items-center justify-center rounded-xl border border-[#30363D] bg-[#202428]"
         >
@@ -293,6 +292,10 @@ export default function ManualReservationScreen() {
               {venues.map((venue) => (
                 <Pressable
                   key={venue.id}
+                  accessibilityRole="radio"
+                  accessibilityState={{
+                    selected: venue.id === selectedVenueId,
+                  }}
                   onPress={() => setSelectedVenueId(venue.id)}
                   className={`mr-2 rounded-xl border px-4 py-3 ${
                     venue.id === selectedVenueId
@@ -328,6 +331,10 @@ export default function ManualReservationScreen() {
               courts.map((court) => (
                 <Pressable
                   key={court.id}
+                  accessibilityRole="radio"
+                  accessibilityState={{
+                    selected: court.id === selectedCourtId,
+                  }}
                   onPress={() => setSelectedCourtId(court.id)}
                   className={`mb-2 flex-row items-center rounded-xl border p-3 ${
                     court.id === selectedCourtId
@@ -367,6 +374,8 @@ export default function ManualReservationScreen() {
               {quickDates.map((date) => (
                 <Pressable
                   key={date}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: date === selectedDate }}
                   onPress={() => setSelectedDate(date)}
                   className={`mb-3 mr-2 rounded-xl border px-3 py-2.5 ${
                     date === selectedDate
@@ -386,6 +395,44 @@ export default function ManualReservationScreen() {
                 </Pressable>
               ))}
             </ScrollView>
+            <View className="mb-3 flex-row items-center justify-between">
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Día anterior"
+                disabled={selectedDate <= today}
+                onPress={() =>
+                  setSelectedDate(
+                    addUruguayDays(
+                      validDateKey(selectedDate) ? selectedDate : today,
+                      -1,
+                    ),
+                  )
+                }
+                className={`h-12 w-12 items-center justify-center rounded-xl border border-[#3B4249] ${selectedDate <= today ? "opacity-40" : ""}`}
+              >
+                <Ionicons name="chevron-back" size={20} color="#C5CBD1" />
+              </Pressable>
+              <Text className="font-semibold capitalize text-white">
+                {validDateKey(selectedDate)
+                  ? dateLabel(selectedDate)
+                  : "Fecha inválida"}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Día siguiente"
+                onPress={() =>
+                  setSelectedDate(
+                    addUruguayDays(
+                      validDateKey(selectedDate) ? selectedDate : today,
+                      1,
+                    ),
+                  )
+                }
+                className="h-12 w-12 items-center justify-center rounded-xl border border-[#3B4249]"
+              >
+                <Ionicons name="chevron-forward" size={20} color="#C5CBD1" />
+              </Pressable>
+            </View>
             <FormField
               label="Fecha (AAAA-MM-DD)"
               value={selectedDate}
@@ -405,9 +452,20 @@ export default function ManualReservationScreen() {
                 </Text>
               </View>
             ) : availabilityError ? (
-              <Text className="mb-3 text-center text-sm text-[#F08A93]">
-                {availabilityError}
-              </Text>
+              <View className="mb-3 items-center">
+                <Text className="text-center text-sm text-[#F08A93]">
+                  {availabilityError}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setAvailabilityRetry((value) => value + 1)}
+                  className="mt-3 min-h-12 justify-center rounded-xl border border-[#80D160] px-5"
+                >
+                  <Text className="font-semibold text-[#80D160]">
+                    Reintentar
+                  </Text>
+                </Pressable>
+              </View>
             ) : !availability?.slots?.length ? (
               <Text className="mb-3 text-sm text-[#A9B1B8]">
                 No hay horarios configurados para esta fecha.
@@ -417,6 +475,12 @@ export default function ManualReservationScreen() {
                 {availability.slots.map((slot) => (
                   <Pressable
                     key={slot.startsAt}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`${slotTime(slot.startsAt)}, ${slot.available ? "disponible" : "ocupado"}`}
+                    accessibilityState={{
+                      disabled: !slot.available,
+                      selected: selectedSlot?.startsAt === slot.startsAt,
+                    }}
                     disabled={!slot.available}
                     onPress={() => setSelectedSlot(slot)}
                     className={`mb-2 mr-2 min-w-[88px] items-center rounded-xl border px-3 py-3 ${
@@ -456,14 +520,20 @@ export default function ManualReservationScreen() {
             <FormField
               label="Nombre completo"
               value={playerName}
-              onChangeText={setPlayerName}
+              onChangeText={(value) => {
+                setPlayerName(value);
+                setFormError("");
+              }}
               maxLength={161}
               placeholder="Persona que reservó"
             />
             <FormField
               label="Teléfono (opcional)"
               value={playerPhone}
-              onChangeText={setPlayerPhone}
+              onChangeText={(value) => {
+                setPlayerPhone(value);
+                setFormError("");
+              }}
               keyboardType="phone-pad"
               maxLength={16}
               placeholder="+59899123456"
@@ -479,7 +549,18 @@ export default function ManualReservationScreen() {
             />
           </View>
 
+          {!!formError && (
+            <Text
+              accessibilityLiveRegion="assertive"
+              className="mb-4 text-center text-sm text-[#F08A93]"
+            >
+              {formError}
+            </Text>
+          )}
+
           <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: saving }}
             disabled={saving}
             onPress={confirmReservation}
             className={`items-center rounded-xl bg-[#80D160] py-4 ${

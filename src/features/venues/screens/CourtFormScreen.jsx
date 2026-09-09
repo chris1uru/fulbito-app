@@ -43,15 +43,24 @@ function single(value) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function Field({ label, ...props }) {
+function Field({ label, error, ...props }) {
   return (
     <View className="mb-4">
       <Text className="mb-2 text-sm font-medium text-[#C5CBD1]">{label}</Text>
       <TextInput
-        className="h-13 rounded-xl border border-[#30363D] bg-[#17191C] px-4 text-white"
+        accessibilityLabel={label}
+        className={`h-13 rounded-xl border bg-[#17191C] px-4 text-white ${error ? "border-[#F08A93]" : "border-[#30363D]"}`}
         placeholderTextColor="#69727B"
         {...props}
       />
+      {!!error && (
+        <Text
+          accessibilityLiveRegion="polite"
+          className="mt-2 text-xs text-[#F08A93]"
+        >
+          {error}
+        </Text>
+      )}
     </View>
   );
 }
@@ -59,6 +68,8 @@ function Field({ label, ...props }) {
 function Choice({ selected, label, onPress }) {
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
       onPress={onPress}
       className={`mb-2 mr-2 rounded-xl border px-4 py-3 ${
         selected
@@ -89,6 +100,7 @@ export default function CourtFormScreen() {
   const [loading, setLoading] = useState(!isCreate);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     if (isCreate) return;
@@ -113,12 +125,17 @@ export default function CourtFormScreen() {
 
   function update(name, value) {
     setForm((current) => ({ ...current, [name]: value }));
+    setFieldErrors((current) => ({ ...current, [name]: "", form: "" }));
   }
 
   async function save() {
     const amount = Number(String(form.pricePerSlot).replace(",", "."));
-    if (!form.name.trim() || !Number.isFinite(amount) || amount < 0) {
-      Alert.alert("Revisá los datos", "Ingresá un nombre y un precio válido.");
+    const nextErrors = {};
+    if (!form.name.trim()) nextErrors.name = "Ingresá el nombre de la cancha.";
+    if (!Number.isFinite(amount) || amount < 0)
+      nextErrors.pricePerSlot = "Ingresá un precio válido en pesos uruguayos.";
+    if (Object.keys(nextErrors).length) {
+      setFieldErrors(nextErrors);
       return;
     }
 
@@ -142,7 +159,7 @@ export default function CourtFormScreen() {
         [{ text: "Aceptar", onPress: () => router.back() }],
       );
     } catch (requestError) {
-      Alert.alert("No se pudo guardar", requestError.message);
+      setFieldErrors({ form: requestError.message });
     } finally {
       setSaving(false);
     }
@@ -163,6 +180,8 @@ export default function CourtFormScreen() {
     >
       <View className="flex-row items-center px-5 pb-4 pt-3">
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Volver"
           onPress={() => router.back()}
           className="mr-4 h-11 w-11 items-center justify-center rounded-xl border border-[#30363D] bg-[#202428]"
         >
@@ -192,6 +211,7 @@ export default function CourtFormScreen() {
             value={form.name}
             onChangeText={(value) => update("name", value)}
             placeholder="Cancha 1"
+            error={fieldErrors.name}
           />
           <Field
             label="Precio por turno (UYU)"
@@ -199,6 +219,7 @@ export default function CourtFormScreen() {
             onChangeText={(value) => update("pricePerSlot", value)}
             keyboardType="decimal-pad"
             placeholder="1800"
+            error={fieldErrors.pricePerSlot}
           />
 
           <Text className="mb-2 text-sm font-medium text-[#C5CBD1]">
@@ -276,7 +297,18 @@ export default function CourtFormScreen() {
           </View>
         </View>
 
+        {!!fieldErrors.form && (
+          <View
+            accessibilityLiveRegion="assertive"
+            className="mb-4 rounded-xl border border-[#653B40] bg-[#2B2225] p-4"
+          >
+            <Text className="text-sm text-[#F08A93]">{fieldErrors.form}</Text>
+          </View>
+        )}
+
         <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: saving || !!error }}
           disabled={saving || !!error}
           onPress={save}
           className={`items-center rounded-xl bg-[#80D160] py-4 ${

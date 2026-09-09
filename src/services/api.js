@@ -199,6 +199,16 @@ export const imagesApi = {
     request(`/api/owner/courts/${id}/images`, { method: "POST", body }),
   setVenueCover: (id) =>
     request(`/api/owner/venue-images/${id}/cover`, { method: "PATCH" }),
+  reorderVenue: (id, sortOrder) =>
+    request(`/api/owner/venue-images/${id}/order`, {
+      method: "PATCH",
+      body: { sortOrder },
+    }),
+  reorderCourt: (id, sortOrder) =>
+    request(`/api/owner/court-images/${id}/order`, {
+      method: "PATCH",
+      body: { sortOrder },
+    }),
   deleteVenue: (id) =>
     request(`/api/owner/venue-images/${id}`, { method: "DELETE" }),
   deleteCourt: (id) =>

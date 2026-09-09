@@ -107,6 +107,8 @@ export default function AppAlertProvider({ children }) {
         onRequestClose={requestClose}
       >
         <View
+          accessibilityViewIsModal
+          accessibilityLiveRegion="assertive"
           className="flex-1 items-center justify-center px-5"
           style={{
             paddingBottom: Math.max(bottom, 16),
@@ -131,7 +133,10 @@ export default function AppAlertProvider({ children }) {
                   />
                 </View>
                 <View className="flex-1 pt-1">
-                  <Text className="text-xl font-bold text-white">
+                  <Text
+                    accessibilityRole="header"
+                    className="text-xl font-bold text-white"
+                  >
                     {configuration.title}
                   </Text>
                   {!!configuration.message && (

@@ -1,16 +1,43 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { reservationsApi } from "../../../services/api";
 import ReservaCard from "./ReservaCard";
 
 export default function PlayerReservationsView() {
+  const router = useRouter();
   const { top, bottom } = useSafeAreaInsets();
   const [reservations, setReservations] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+
+  const load = useCallback(() => {
+    let active = true;
+    setLoading(true);
+    setError("");
+    reservationsApi
+      .mine()
+      .then((data) => {
+        if (active) setReservations(data);
+      })
+      .catch((requestError) => {
+        if (active) setError(requestError.message);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const now = Date.now();
   const sortedReservations = [...reservations].sort(
@@ -31,27 +58,8 @@ export default function PlayerReservationsView() {
 
   useFocusEffect(
     useCallback(() => {
-      let active = true;
-      setLoading(true);
-      setError("");
-
-      reservationsApi
-        .mine()
-        .then((data) => {
-          if (!active) return;
-          setReservations(data);
-        })
-        .catch((requestError) => {
-          if (active) setError(requestError.message);
-        })
-        .finally(() => {
-          if (active) setLoading(false);
-        });
-
-      return () => {
-        active = false;
-      };
-    }, []),
+      return load();
+    }, [load]),
   );
 
   return (
@@ -73,13 +81,22 @@ export default function PlayerReservationsView() {
           <ActivityIndicator color="#80D160" size="large" />
         </View>
       ) : error ? (
-        <View className="mx-4 flex-row items-center rounded-2xl border border-[#653B40] bg-[#2B2225] p-4">
-          <View className="mr-3 h-10 w-10 items-center justify-center rounded-xl bg-[#3A292D]">
-            <Ionicons name="alert-circle-outline" size={21} color="#F08A93" />
+        <View className="mx-4 items-center rounded-2xl border border-[#653B40] bg-[#2B2225] p-4">
+          <View className="flex-row items-center">
+            <View className="mr-3 h-10 w-10 items-center justify-center rounded-xl bg-[#3A292D]">
+              <Ionicons name="alert-circle-outline" size={21} color="#F08A93" />
+            </View>
+            <Text className="flex-1 text-sm leading-5 text-[#F08A93]">
+              {error}
+            </Text>
           </View>
-          <Text className="flex-1 text-sm leading-5 text-[#F08A93]">
-            {error}
-          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={load}
+            className="mt-4 min-h-12 w-full items-center justify-center rounded-xl border border-[#653B40]"
+          >
+            <Text className="font-semibold text-[#F08A93]">Reintentar</Text>
+          </Pressable>
         </View>
       ) : reservations.length === 0 ? (
         <View className="mx-4 items-center rounded-3xl border border-dashed border-[#3B4249] bg-[#202428] px-6 py-12">
@@ -89,6 +106,16 @@ export default function PlayerReservationsView() {
           <Text className="mt-4 text-center font-medium text-[#A9B1B8]">
             Todavía no hay reservas.
           </Text>
+          <Text className="mt-2 text-center text-sm leading-5 text-[#8B949E]">
+            Buscá un complejo y elegí un turno disponible.
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push("/maps")}
+            className="mt-5 min-h-12 w-full items-center justify-center rounded-xl bg-[#80D160]"
+          >
+            <Text className="font-semibold text-[#152012]">Buscar cancha</Text>
+          </Pressable>
         </View>
       ) : (
         <ScrollView

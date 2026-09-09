@@ -27,14 +27,16 @@ function Navigator() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="help" />
       <Stack.Protected guard={!user}>
         <Stack.Screen name="loginScreen" />
         <Stack.Screen name="register" />
       </Stack.Protected>
       <Stack.Protected guard={!!user}>
-        <Stack.Screen name="index" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="profileEdit" />
+        <Stack.Screen name="welcome" />
         <Stack.Screen name="venueLayout" />
         <Stack.Screen name="reservaDetail" />
         <Stack.Protected

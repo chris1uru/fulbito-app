@@ -125,11 +125,16 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(255, 255, 255, 0.08)",
     backgroundColor: "#17191C",
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.16,
-    shadowRadius: 22,
-    elevation: 1,
+    ...Platform.select({
+      web: { boxShadow: "0 4px 22px rgba(0, 0, 0, 0.16)" },
+      default: {
+        shadowColor: "#000000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.16,
+        shadowRadius: 22,
+        elevation: 1,
+      },
+    }),
   },
   indicator: {
     position: "absolute",
@@ -149,7 +154,7 @@ const styles = StyleSheet.create({
     gap: Platform.OS === "ios" ? 2 : 1,
   },
   label: {
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: "500",
   },
 });

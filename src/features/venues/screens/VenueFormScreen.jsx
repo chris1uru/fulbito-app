@@ -243,6 +243,8 @@ export default function VenueFormScreen() {
             {error}
           </Text>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Volver"
             onPress={() => router.back()}
             className="mt-5 rounded-xl bg-[#80D160] px-5 py-3"
           >
@@ -260,6 +262,8 @@ export default function VenueFormScreen() {
     >
       <View className="flex-row items-center px-5 pb-4 pt-3">
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Volver"
           onPress={() => router.back()}
           className="mr-4 h-11 w-11 items-center justify-center rounded-xl border border-[#30363D] bg-[#202428]"
         >

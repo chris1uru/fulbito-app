@@ -245,6 +245,8 @@ export default function ReservaDetailScreen() {
     >
       <View className="flex-row items-center px-5 pb-4 pt-3">
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Volver"
           onPress={() => router.back()}
           className="mr-4 h-11 w-11 items-center justify-center rounded-xl border border-[#30363D] bg-[#202428]"
         >
@@ -406,6 +408,8 @@ export default function ReservaDetailScreen() {
 
         {canMarkPaid && (
           <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: markingPaid || cancelling }}
             disabled={markingPaid || cancelling}
             onPress={confirmPayment}
             className={`mt-5 items-center rounded-xl bg-[#80D160] py-4 ${
@@ -431,6 +435,8 @@ export default function ReservaDetailScreen() {
 
         {canCancel && (
           <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: cancelling || markingPaid }}
             disabled={cancelling || markingPaid}
             onPress={confirmCancellation}
             className={`mt-5 items-center rounded-xl border border-[#653B40] bg-[#2B2225] py-4 ${
@@ -453,6 +459,28 @@ export default function ReservaDetailScreen() {
             )}
           </Pressable>
         )}
+
+        {user.role === "PLAYER" &&
+          (isCancelled || startsAt.getTime() < Date.now()) && (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() =>
+                router.push({
+                  pathname: "/venueLayout",
+                  params: {
+                    venueId: reservation.venueId,
+                    courtId: reservation.courtId,
+                  },
+                })
+              }
+              className="mt-5 min-h-14 flex-row items-center justify-center rounded-xl border border-[#315C3B] bg-[#142019]"
+            >
+              <Ionicons name="repeat-outline" size={20} color="#80D160" />
+              <Text className="ml-2 font-semibold text-[#80D160]">
+                Reservar esta cancha de nuevo
+              </Text>
+            </Pressable>
+          )}
       </ScrollView>
     </SafeAreaView>
   );

@@ -74,10 +74,7 @@ export default function ManagedReservationsView({ isAdmin }) {
       if (isAdmin || data.length > 1) {
         const { from, to } = uruguayDayRange(uruguayDateKey());
         setCountsLoading(true);
-        const todayAgenda = await reservationsApi.ownerAgenda(
-          from,
-          to,
-        );
+        const todayAgenda = await reservationsApi.ownerAgenda(from, to);
         if (requestId !== venuesRequestId.current) return;
 
         const counts = Object.fromEntries(data.map((venue) => [venue.id, 0]));
@@ -128,11 +125,7 @@ export default function ManagedReservationsView({ isAdmin }) {
 
     try {
       const [data, venueCourts] = await Promise.all([
-        reservationsApi.ownerAgenda(
-          from,
-          to,
-          selectedVenue?.id,
-        ),
+        reservationsApi.ownerAgenda(from, to, selectedVenue?.id),
         selectedVenue
           ? courtsApi.managedList(selectedVenue.id)
           : Promise.resolve(null),
