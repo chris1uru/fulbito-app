@@ -1,0 +1,4 @@
+env: load .env
+env: export EXPO_PUBLIC_API_URL
+Error: EPERM: operation not permitted, open 'C:\Users\chris\.expo\native-modules-cache\1447565e2698538ea38ff996b3c5008800c2df9b9b255db85a9e1b473f9bdad0-body.bin'
+Error: EPERM: operation not permitted, open 'C:\Users\chris\.expo\native-modules-cache\1447565e2698538ea38ff996b3c5008800c2df9b9b255db85a9e1b473f9bdad0-body.bin'

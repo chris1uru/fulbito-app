@@ -8,6 +8,7 @@ import { adminUsersApi } from "../../../services/api";
 import CountryPhoneField, {
   phoneValidationMessage,
 } from "../../../components/common/CountryPhoneField";
+import PasswordField from "../../../components/common/PasswordField";
 
 const EMPTY = {
   firstName: "",
@@ -23,7 +24,6 @@ function Field({
   value,
   onChangeText,
   keyboardType,
-  secureTextEntry,
   placeholder,
   error,
 }) {
@@ -35,7 +35,6 @@ function Field({
         value={value}
         onChangeText={onChangeText}
         keyboardType={keyboardType}
-        secureTextEntry={secureTextEntry}
         autoCapitalize={keyboardType === "email-address" ? "none" : "sentences"}
         placeholder={placeholder}
         placeholderTextColor="#69727B"
@@ -183,11 +182,10 @@ export default function UserFormScreen() {
             onChangeText={(phone) => update("phone", phone)}
             error={errors.phone}
           />
-          <Field
+          <PasswordField
             label="Contraseña temporal"
             value={form.password}
             onChangeText={(value) => update("password", value)}
-            secureTextEntry
             placeholder="Mínimo 10 caracteres"
             error={errors.password}
           />

@@ -67,6 +67,9 @@ const STATUS_LABELS = {
 function FilterChip({ active, label, onPress }) {
   return (
     <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
       onPress={onPress}
       className={`rounded-lg border px-3 py-2 ${
         active
@@ -96,6 +99,7 @@ function StyleSelector({ value, onChange, includeAll = true }) {
         return (
           <Pressable
             key={option.value}
+            accessibilityLabel={option.label}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
             onPress={() => onChange(option.value)}
@@ -229,6 +233,8 @@ function MatchCard({ item, mine, busy, onInterest, onClose, onViewInterests }) {
       {mine ? (
         <View className="mt-4 flex-row gap-2">
           <Pressable
+            accessibilityLabel={`Ver ${item.interestCount} interesado${item.interestCount === 1 ? "" : "s"}`}
+            accessibilityRole="button"
             onPress={() => onViewInterests(item)}
             className="min-h-11 flex-1 flex-row items-center justify-center rounded-xl bg-[#2C4930] px-3"
           >
@@ -240,6 +246,8 @@ function MatchCard({ item, mine, busy, onInterest, onClose, onViewInterests }) {
           </Pressable>
           {open && (
             <Pressable
+              accessibilityLabel="Cerrar búsqueda"
+              accessibilityRole="button"
               disabled={busy}
               onPress={() => onClose(item)}
               className="min-h-11 items-center justify-center rounded-xl border border-[#653B40] bg-[#2B2225] px-4"
@@ -254,6 +262,10 @@ function MatchCard({ item, mine, busy, onInterest, onClose, onViewInterests }) {
         </View>
       ) : (
         <Pressable
+          accessibilityLabel={
+            item.interested ? "Ya dijiste que querés jugar" : "Quiero jugar"
+          }
+          accessibilityRole="button"
           disabled={item.interested || busy}
           onPress={() => onInterest(item)}
           className={`mt-4 min-h-12 flex-row items-center justify-center rounded-xl ${
@@ -289,6 +301,9 @@ function MatchCard({ item, mine, busy, onInterest, onClose, onViewInterests }) {
 function ChoiceCard({ active, icon, title, detail, onPress }) {
   return (
     <Pressable
+      accessibilityLabel={title}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
       onPress={onPress}
       className={`mb-2 flex-row items-center rounded-2xl border p-4 ${
         active
@@ -493,6 +508,11 @@ function CreateMatchModal({ visible, reservations, onClose, onCreated }) {
                 futureReservations.map((reservation) => (
                   <Pressable
                     key={reservation.id}
+                    accessibilityLabel={`${reservation.venueName}, ${reservation.courtName}`}
+                    accessibilityRole="button"
+                    accessibilityState={{
+                      selected: reservationId === reservation.id,
+                    }}
                     onPress={() => setReservationId(reservation.id)}
                     className={`mb-2 rounded-2xl border p-4 ${
                       reservationId === reservation.id
@@ -625,6 +645,7 @@ function CreateMatchModal({ visible, reservations, onClose, onCreated }) {
             Comentario opcional
           </Text>
           <TextInput
+            accessibilityLabel="Comentario opcional"
             multiline
             maxLength={500}
             value={notes}
@@ -639,6 +660,8 @@ function CreateMatchModal({ visible, reservations, onClose, onCreated }) {
           </Text>
 
           <Pressable
+            accessibilityLabel="Publicar búsqueda"
+            accessibilityRole="button"
             disabled={saving}
             onPress={submit}
             className="mt-6 min-h-14 flex-row items-center justify-center rounded-2xl bg-[#80D160]"
@@ -996,6 +1019,9 @@ export default function MatchmakingScreen() {
             ].map(([value, label]) => (
               <Pressable
                 key={value}
+                accessibilityLabel={label}
+                accessibilityRole="button"
+                accessibilityState={{ selected: view === value }}
                 onPress={() => setView(value)}
                 className={`min-h-10 flex-1 items-center justify-center rounded-lg ${
                   view === value ? "bg-[#2C4930]" : ""
@@ -1013,6 +1039,8 @@ export default function MatchmakingScreen() {
 
         <View className="mx-4 mb-4 overflow-hidden rounded-2xl border border-[#30363D] bg-[#202428]">
           <Pressable
+            accessibilityLabel="Más filtros"
+            accessibilityRole="button"
             onPress={() => setFiltersExpanded((current) => !current)}
             className="flex-row items-center justify-between px-4 py-4"
             accessibilityState={{ expanded: filtersExpanded }}
@@ -1082,6 +1110,8 @@ export default function MatchmakingScreen() {
                 {error}
               </Text>
               <Pressable
+                accessibilityLabel="Reintentar"
+                accessibilityRole="button"
                 onPress={() => load()}
                 className="mt-4 rounded-xl bg-[#3A292D] px-5 py-3"
               >
@@ -1104,6 +1134,8 @@ export default function MatchmakingScreen() {
                   : "Probá cambiar los filtros o publicá tu propia búsqueda."}
               </Text>
               <Pressable
+                accessibilityLabel="Publicar búsqueda"
+                accessibilityRole="button"
                 onPress={() => requirePhone(() => setCreateVisible(true))}
                 className="mt-5 min-h-11 flex-row items-center justify-center rounded-xl bg-[#80D160] px-5"
               >

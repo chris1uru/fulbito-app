@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import CountryPhoneField, {
   phoneValidationMessage,
 } from "../../../components/common/CountryPhoneField";
+import PasswordField from "../../../components/common/PasswordField";
 import { useAuth } from "../../../providers/AuthProvider";
 
 const fields = [
@@ -31,7 +32,6 @@ export default function RegisterScreen() {
     confirmPassword: "",
   });
   const [loading, setLoading] = useState(false);
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [errors, setErrors] = useState({});
 
   function update(name, value) {
@@ -144,81 +144,24 @@ export default function RegisterScreen() {
             error={errors.phone}
           />
 
-          <View className="mb-4">
-            <Text className="mb-2 text-sm font-medium text-[#C5CBD1]">
-              Contraseña
-            </Text>
-            <View className="h-13 flex-row items-center rounded-xl border border-[#30363D] bg-[#17191C] px-4">
-              <Ionicons name="lock-closed-outline" size={19} color="#8B949E" />
-              <TextInput
-                accessibilityLabel="Contraseña"
-                className="h-full flex-1 px-3 text-white"
-                placeholder="Contraseña"
-                placeholderTextColor="#69727B"
-                value={form.password}
-                onChangeText={(password) => update("password", password)}
-                autoCapitalize="none"
-                secureTextEntry={!isPasswordVisible}
-              />
-              <TouchableOpacity
-                onPress={() => setIsPasswordVisible((current) => !current)}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  isPasswordVisible
-                    ? "Ocultar contraseña"
-                    : "Mostrar contraseña"
-                }
-              >
-                <Ionicons
-                  name={isPasswordVisible ? "eye-off-outline" : "eye-outline"}
-                  size={20}
-                  color="#A9B1B8"
-                />
-              </TouchableOpacity>
-            </View>
-            <Text className="mt-2 text-xs text-[#8B949E]">
-              Mínimo 10 caracteres
-            </Text>
-            {!!errors.password && (
-              <Text
-                accessibilityLiveRegion="polite"
-                className="mt-2 text-xs text-[#F08A93]"
-              >
-                {errors.password}
-              </Text>
-            )}
-          </View>
+          <PasswordField
+            label="Contraseña"
+            value={form.password}
+            onChangeText={(password) => update("password", password)}
+            error={errors.password}
+            helperText="Mínimo 10 caracteres"
+            placeholder="Contraseña"
+          />
 
-          <View className="mb-4">
-            <Text className="mb-2 text-sm font-medium text-[#C5CBD1]">
-              Repetir contraseña
-            </Text>
-            <View
-              className={`h-13 flex-row items-center rounded-xl border bg-[#17191C] px-4 ${errors.confirmPassword ? "border-[#F08A93]" : "border-[#30363D]"}`}
-            >
-              <Ionicons name="lock-closed-outline" size={19} color="#8B949E" />
-              <TextInput
-                accessibilityLabel="Repetir contraseña"
-                className="h-full flex-1 px-3 text-white"
-                placeholder="Repetí la contraseña"
-                placeholderTextColor="#69727B"
-                value={form.confirmPassword}
-                onChangeText={(value) => update("confirmPassword", value)}
-                autoCapitalize="none"
-                secureTextEntry={!isPasswordVisible}
-                returnKeyType="done"
-                onSubmitEditing={register}
-              />
-            </View>
-            {!!errors.confirmPassword && (
-              <Text
-                accessibilityLiveRegion="polite"
-                className="mt-2 text-xs text-[#F08A93]"
-              >
-                {errors.confirmPassword}
-              </Text>
-            )}
-          </View>
+          <PasswordField
+            label="Repetir contraseña"
+            value={form.confirmPassword}
+            onChangeText={(value) => update("confirmPassword", value)}
+            error={errors.confirmPassword}
+            placeholder="Repetí la contraseña"
+            returnKeyType="done"
+            onSubmitEditing={register}
+          />
 
           {!!errors.form && (
             <View

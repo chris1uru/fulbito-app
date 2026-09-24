@@ -7,17 +7,10 @@ import { AppAlert as Alert } from "../../../components/common/AppAlert";
 import CountryPhoneField, {
   phoneValidationMessage,
 } from "../../../components/common/CountryPhoneField";
+import PasswordField from "../../../components/common/PasswordField";
 import { useAuth } from "../../../providers/AuthProvider";
 
-function Field({
-  label,
-  value,
-  onChangeText,
-  editable = true,
-  secureTextEntry = false,
-  ...props
-}) {
-  const [passwordVisible, setPasswordVisible] = useState(false);
+function Field({ label, value, onChangeText, editable = true, ...props }) {
   return (
     <View className="mb-4">
       <Text className="mb-2 text-sm font-medium text-[#C5CBD1]">{label}</Text>
@@ -29,30 +22,14 @@ function Field({
         }`}
       >
         <TextInput
+          accessibilityLabel={label}
           className="h-full flex-1 text-white"
           value={value}
           onChangeText={onChangeText}
           editable={editable}
           placeholderTextColor="#69727B"
-          secureTextEntry={secureTextEntry && !passwordVisible}
           {...props}
         />
-        {secureTextEntry && (
-          <Pressable
-            onPress={() => setPasswordVisible((current) => !current)}
-            className="ml-3 p-1"
-            accessibilityRole="button"
-            accessibilityLabel={
-              passwordVisible ? "Ocultar contraseña" : "Mostrar contraseña"
-            }
-          >
-            <Ionicons
-              name={passwordVisible ? "eye-off-outline" : "eye-outline"}
-              size={20}
-              color="#A9B1B8"
-            />
-          </Pressable>
-        )}
       </View>
     </View>
   );
@@ -202,34 +179,30 @@ export default function ProfileEditScreen() {
           {!!user.nationalId && (
             <Field label="Cédula" value={user.nationalId} editable={false} />
           )}
-          <Field
+          <PasswordField
             label="Contraseña actual"
             value={passwords.current}
             onChangeText={(value) =>
               setPasswords((current) => ({ ...current, current: value }))
             }
-            secureTextEntry
-            autoCapitalize="none"
           />
-          <Field
+          <PasswordField
             label="Nueva contraseña"
             value={passwords.next}
             onChangeText={(value) =>
               setPasswords((current) => ({ ...current, next: value }))
             }
-            secureTextEntry
-            autoCapitalize="none"
           />
-          <Field
+          <PasswordField
             label="Repetir nueva contraseña"
             value={passwords.repeat}
             onChangeText={(value) =>
               setPasswords((current) => ({ ...current, repeat: value }))
             }
-            secureTextEntry
-            autoCapitalize="none"
           />
           <Pressable
+            accessibilityLabel="Cambiar contraseña"
+            accessibilityRole="button"
             disabled={changingPassword || !passwords.current || !passwords.next}
             onPress={savePassword}
             className={`items-center rounded-xl border border-[#80D160] py-3 ${changingPassword ? "opacity-60" : ""}`}
@@ -255,6 +228,8 @@ export default function ProfileEditScreen() {
         </View>
 
         <Pressable
+          accessibilityLabel="Guardar cambios"
+          accessibilityRole="button"
           disabled={saving}
           onPress={save}
           className={`items-center rounded-xl bg-[#80D160] py-4 ${saving ? "opacity-60" : ""}`}

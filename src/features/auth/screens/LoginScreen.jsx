@@ -9,13 +9,13 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import PasswordField from "../../../components/common/PasswordField";
 import { useAuth } from "../../../providers/AuthProvider";
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState("");
 
@@ -81,40 +81,17 @@ export default function LoginScreen() {
             />
           </View>
 
-          <Text className="mb-2 text-sm font-medium text-[#C5CBD1]">
-            Contraseña
-          </Text>
-          <View className="mb-6 h-13 flex-row items-center rounded-xl border border-[#30363D] bg-[#17191C] px-4">
-            <Ionicons name="lock-closed-outline" size={19} color="#8B949E" />
-            <TextInput
-              accessibilityLabel="Contraseña"
-              className="h-full flex-1 px-3 text-white"
-              placeholder="••••••••"
-              placeholderTextColor="#69727B"
-              secureTextEntry={!isPasswordVisible}
-              value={password}
-              onChangeText={(value) => {
-                setPassword(value);
-                setFormError("");
-              }}
-              returnKeyType="done"
-              onSubmitEditing={handleLogin}
-            />
-            <TouchableOpacity
-              accessibilityLabel={
-                isPasswordVisible ? "Ocultar contraseña" : "Mostrar contraseña"
-              }
-              accessibilityRole="button"
-              hitSlop={8}
-              onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-            >
-              <Ionicons
-                name={isPasswordVisible ? "eye-outline" : "eye-off-outline"}
-                size={21}
-                color="#8B949E"
-              />
-            </TouchableOpacity>
-          </View>
+          <PasswordField
+            label="Contraseña"
+            value={password}
+            onChangeText={(value) => {
+              setPassword(value);
+              setFormError("");
+            }}
+            containerClassName="mb-6"
+            returnKeyType="done"
+            onSubmitEditing={handleLogin}
+          />
 
           {!!formError && (
             <View
